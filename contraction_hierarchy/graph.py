@@ -2,7 +2,6 @@ import pandas as pd
 import math
 from copy import deepcopy
 from collections import defaultdict
-from itertools import product
 from tqdm import tqdm
 import heapdict
 
@@ -66,33 +65,38 @@ class TransportGraph:
         for index in tqdm(range(len(self.nodes))):
             node = new_graph.contraction_priority.popitem()[0]
             new_depth = new_graph.depth[node] + 1
-            in_nodes_last = None
             previous_node_items = in_nodes[node].items()
             if list(previous_node_items):
                 in_nodes_last = list(previous_node_items)[-1][0]
 
-            for previous_node, f in previous_node_items:
-                for next_node, g in graph[node].items():
-                    if previous_node != next_node:
-                        # calculate new connection function
+                for previous_node, f in previous_node_items:
+                    for next_node, g in graph[node].items():
+                        if previous_node != next_node:
+                            # calculate new connection function
 
-                        new_f = g.composition(f)
+                            new_f = g.composition(f)
 
-                        h = graph[previous_node].get(next_node, None)
-                        if h:
-                            new_f = min_atf(new_f, h)
-                        in_nodes[next_node][previous_node] = graph[previous_node][next_node] = new_f
-                        new_graph.in_nodes[next_node][previous_node] = new_graph.graph[previous_node][next_node] = new_f
+                            h = graph[previous_node].get(next_node, None)
+                            if h:
+                                new_f = min_atf(new_f, h)
+                            in_nodes[next_node][previous_node] = graph[previous_node][next_node] = new_f
+                            new_graph.in_nodes[next_node][previous_node] = new_graph.graph[previous_node][next_node] = new_f
+                            if previous_node == in_nodes_last:
+                                new_graph.depth[next_node] = max(new_graph.depth[next_node], new_depth)
+                                new_graph.contraction_priority[next_node] = (new_graph.edge_difference(next_node)
+                                                                             + new_graph.depth[next_node])
                         if previous_node == in_nodes_last:
-                            new_graph.depth[next_node] = max(new_graph.depth[next_node], new_depth)
-                            new_graph.contraction_priority[next_node] = (new_graph.edge_difference(next_node)
-                                                                         + new_graph.depth[next_node])
-                    if previous_node == in_nodes_last:
-                        del in_nodes[next_node][node]
-                new_graph.depth[previous_node] = max(new_graph.depth[previous_node], new_depth)
-                new_graph.contraction_priority[previous_node] = (new_graph.edge_difference(previous_node)
-                                                                 + new_graph.depth[previous_node])
-                del graph[previous_node][node]
+                            del in_nodes[next_node][node]
+                    new_graph.depth[previous_node] = max(new_graph.depth[previous_node], new_depth)
+                    new_graph.contraction_priority[previous_node] = (new_graph.edge_difference(previous_node)
+                                                                     + new_graph.depth[previous_node])
+                    del graph[previous_node][node]
+            else:
+                for next_node, g in graph[node].items():
+                    new_graph.depth[next_node] = max(new_graph.depth[next_node], new_depth)
+                    new_graph.contraction_priority[next_node] = (new_graph.edge_difference(next_node)
+                                                                 + new_graph.depth[next_node])
+                    del in_nodes[next_node][node]
 
             del graph[node], in_nodes[node]
 
@@ -104,9 +108,9 @@ class TransportGraph:
 class ContactionTransportGraph(TransportGraph):
 
     def __init__(self, graph, in_nodes, nodes):
-        self.graph = deepcopy(graph)
-        self.in_nodes = deepcopy(in_nodes)
-        self.nodes = deepcopy(nodes)
+        self.graph = graph
+        self.in_nodes = in_nodes
+        self.nodes = nodes
         self.hierarchy = {}
         self.geometrical_containers = {}
         self.depth = defaultdict(int)
