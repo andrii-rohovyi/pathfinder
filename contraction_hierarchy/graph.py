@@ -47,11 +47,13 @@ class TransportGraph:
         out_nodes_cnt = len(self.graph[node])
         in_nodes_cnt = len(self.in_nodes[node])
 
-        existing_shortcuts = len({(x, y)
-                                  for (x, y) in product(self.graph[node], self.in_nodes[node])
-                                  if x in self.graph[y].keys()})
+        # TODO: Validate idea with drooping existing shortcuts
+        # existing_shortcuts = len({(x, y)
+        #                          for (x, y) in product(self.graph[node], self.in_nodes[node])
+        #                          if self.graph[y].get(x)})
+        # shortcuts_inserted = out_nodes_cnt * in_nodes_cnt - existing_shortcuts
 
-        shortcuts_inserted = out_nodes_cnt * in_nodes_cnt - existing_shortcuts
+        shortcuts_inserted = out_nodes_cnt * in_nodes_cnt
         edges_removed = out_nodes_cnt + in_nodes_cnt
 
         return shortcuts_inserted - edges_removed
@@ -84,7 +86,7 @@ class TransportGraph:
                         if previous_node == in_nodes_last:
                             new_graph.depth[next_node] = max(new_graph.depth[next_node], new_depth)
                             new_graph.contraction_priority[next_node] = (new_graph.edge_difference(next_node)
-                                                                     + new_graph.depth[next_node])
+                                                                         + new_graph.depth[next_node])
                     if previous_node == in_nodes_last:
                         del in_nodes[next_node][node]
                 new_graph.depth[previous_node] = max(new_graph.depth[previous_node], new_depth)
