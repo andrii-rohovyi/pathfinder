@@ -51,6 +51,13 @@ class ATF:
         j = 0
         while i < f.size and j < self.size:
             if i + 1 < f.size and f.buses[i + 1].c[1] <= self.buses[j].c[0]:
+                if self.walk.w != math.inf:
+                    cw_c = (f.buses[i].c[0], f.buses[i].c[1] + self.walk.w)
+                    cw_nodes = f.buses[i].nodes + self.walk.nodes[1:]
+                    cw_route_names = f.buses[i].route_names + self.walk.route_names
+                    bus = Bus(nodes=cw_nodes, c=cw_c, route_names=cw_route_names)
+                    cw.append(bus)
+
                 i += 1
             elif f.buses[i].c[1] <= self.buses[j].c[0]:
                 cc_c = (f.buses[i].c[0], self.buses[j].c[1])
@@ -58,26 +65,31 @@ class ATF:
                 cc_route_names = f.buses[i].route_names + self.buses[j].route_names
                 bus = Bus(nodes=cc_nodes, c=cc_c, route_names=cc_route_names)
                 cc.append(bus)
+
+                if self.walk.w != math.inf:
+                    cw_c = (f.buses[i].c[0], f.buses[i].c[1] + self.walk.w)
+                    cw_nodes = f.buses[i].nodes + self.walk.nodes[1:]
+                    cw_route_names = f.buses[i].route_names + self.walk.route_names
+                    bus = Bus(nodes=cw_nodes, c=cw_c, route_names=cw_route_names)
+                    cw.append(bus)
                 i += 1
+
+                if f.walk.w != math.inf:
+                    wc_c = (self.buses[j].c[0] - f.walk.w, self.buses[j].c[1])
+                    wc_nodes = f.walk.nodes + self.buses[j].nodes[1:]
+                    wc_route_names = f.walk.route_names + self.buses[j].route_names
+                    bus = Bus(nodes=wc_nodes, c=wc_c, route_names=wc_route_names)
+                    wc.append(bus)
                 j += 1
             else:
+
+                if f.walk.w != math.inf:
+                    wc_c = (self.buses[j].c[0] - f.walk.w, self.buses[j].c[1])
+                    wc_nodes = f.walk.nodes + self.buses[j].nodes[1:]
+                    wc_route_names = f.walk.route_names + self.buses[j].route_names
+                    bus = Bus(nodes=wc_nodes, c=wc_c, route_names=wc_route_names)
+                    wc.append(bus)
                 j += 1
-
-        if self.walk.w != math.inf:
-            for i in range(f.size):
-                cw_c = (f.buses[i].c[0], f.buses[i].c[1] + self.walk.w)
-                cw_nodes = f.buses[i].nodes + self.walk.nodes[1:]
-                cw_route_names = f.buses[i].route_names + self.walk.route_names
-                bus = Bus(nodes=cw_nodes, c=cw_c, route_names=cw_route_names)
-                cw.append(bus)
-
-        if f.walk.w != math.inf:
-            for j in range(self.size):
-                wc_c = (self.buses[j].c[0] - f.walk.w, self.buses[j].c[1])
-                wc_nodes = f.walk.nodes + self.buses[j].nodes[1:]
-                wc_route_names = f.walk.route_names + self.buses[j].route_names
-                bus = Bus(nodes=wc_nodes, c=wc_c, route_names=wc_route_names)
-                wc.append(bus)
 
         c = list(merge(cc, cw, wc, key=lambda x: x.c))
         g = ATF(walk=walk, buses=c)
