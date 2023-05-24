@@ -1,11 +1,13 @@
 from typing import List
 from heapq import merge
 import math
+from bisect import bisect_left
 
 from trip import Walk, Bus
 
 
 class ATF:
+    __slots__ = "walk", 'buses', 'size'
 
     def __init__(self, walk: Walk, buses: List[Bus]):
         """
@@ -100,15 +102,11 @@ class ATF:
         l = math.inf
         sequence_nodes = []
         route_names = []
-        if self.buses:
-            i = 0
-            while i < self.size:
-                if self.buses[i].c[0] >= t:
-                    l = self.buses[i].c[1]
-                    sequence_nodes = self.buses[i].nodes
-                    route_names = self.buses[i].route_names
-                    i = self.size
-                i += 1
+        start_index = bisect_left(self.buses, t, key=lambda x: x.c[0])
+        if start_index < self.size:
+            l = self.buses[start_index].c[1]
+            sequence_nodes = self.buses[start_index].nodes
+            route_names = self.buses[start_index].route_names
         walk_time = t + self.walk.w
         if walk_time < l:
             return walk_time, self.walk.nodes, self.walk.route_names
@@ -117,7 +115,6 @@ class ATF:
 
 
 def min_atf(f1: ATF, f2: ATF):
-
     if f1.walk.w > f2.walk.w:
         walk = f2.walk
     else:
