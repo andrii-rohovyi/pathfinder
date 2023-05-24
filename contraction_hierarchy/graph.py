@@ -108,9 +108,9 @@ class TransportGraph:
 class ContactionTransportGraph(TransportGraph):
 
     def __init__(self, graph, in_nodes, nodes):
-        self.graph = graph
-        self.in_nodes = in_nodes
-        self.nodes = nodes
+        self.graph = deepcopy(graph)
+        self.in_nodes = deepcopy(in_nodes)
+        self.nodes = deepcopy(nodes)
         self.hierarchy = {}
         self.geometrical_containers = {}
         self.depth = defaultdict(int)

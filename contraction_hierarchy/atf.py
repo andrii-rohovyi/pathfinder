@@ -1,5 +1,4 @@
 from typing import List
-from heapq import merge
 import math
 from bisect import bisect_left
 
@@ -25,12 +24,12 @@ class ATF:
         i = 0
         while i < self.size:
             if r:
-                d, a = r[-1].c
-                if self.buses[i].c[1] > a:
-                    if d < self.buses[i].c[0]:
+                d, a = r[-1].d,  r[-1].a
+                if self.buses[i].a > a:
+                    if d < self.buses[i].d:
                         r.append(self.buses[i])
                     i += 1
-                elif d == self.buses[i].c[0]:
+                elif d == self.buses[i].d:
                     r.pop()
                     r.append(self.buses[i])
                     i += 1
@@ -52,24 +51,24 @@ class ATF:
         i = 0
         j = 0
         while i < f.size and j < self.size:
-            if i + 1 < f.size and f.buses[i + 1].c[1] <= self.buses[j].c[0]:
+            if i + 1 < f.size and f.buses[i + 1].a <= self.buses[j].d:
                 if self.walk.w != math.inf:
-                    cw_c = (f.buses[i].c[0], f.buses[i].c[1] + self.walk.w)
+                    cw_c = (f.buses[i].d, f.buses[i].a + self.walk.w)
                     cw_nodes = f.buses[i].nodes + self.walk.nodes[1:]
                     cw_route_names = f.buses[i].route_names + self.walk.route_names
                     bus = Bus(nodes=cw_nodes, c=cw_c, route_names=cw_route_names)
                     cw.append(bus)
 
                 i += 1
-            elif f.buses[i].c[1] <= self.buses[j].c[0]:
-                cc_c = (f.buses[i].c[0], self.buses[j].c[1])
+            elif f.buses[i].a <= self.buses[j].d:
+                cc_c = (f.buses[i].d, self.buses[j].a)
                 cc_nodes = f.buses[i].nodes + self.buses[j].nodes[1:]
                 cc_route_names = f.buses[i].route_names + self.buses[j].route_names
                 bus = Bus(nodes=cc_nodes, c=cc_c, route_names=cc_route_names)
                 cc.append(bus)
 
                 if self.walk.w != math.inf:
-                    cw_c = (f.buses[i].c[0], f.buses[i].c[1] + self.walk.w)
+                    cw_c = (f.buses[i].d, f.buses[i].a + self.walk.w)
                     cw_nodes = f.buses[i].nodes + self.walk.nodes[1:]
                     cw_route_names = f.buses[i].route_names + self.walk.route_names
                     bus = Bus(nodes=cw_nodes, c=cw_c, route_names=cw_route_names)
@@ -77,7 +76,7 @@ class ATF:
                 i += 1
 
                 if f.walk.w != math.inf:
-                    wc_c = (self.buses[j].c[0] - f.walk.w, self.buses[j].c[1])
+                    wc_c = (self.buses[j].d - f.walk.w, self.buses[j].a)
                     wc_nodes = f.walk.nodes + self.buses[j].nodes[1:]
                     wc_route_names = f.walk.route_names + self.buses[j].route_names
                     bus = Bus(nodes=wc_nodes, c=wc_c, route_names=wc_route_names)
@@ -86,14 +85,15 @@ class ATF:
             else:
 
                 if f.walk.w != math.inf:
-                    wc_c = (self.buses[j].c[0] - f.walk.w, self.buses[j].c[1])
+                    wc_c = (self.buses[j].d - f.walk.w, self.buses[j].a)
                     wc_nodes = f.walk.nodes + self.buses[j].nodes[1:]
                     wc_route_names = f.walk.route_names + self.buses[j].route_names
                     bus = Bus(nodes=wc_nodes, c=wc_c, route_names=wc_route_names)
                     wc.append(bus)
                 j += 1
 
-        c = list(merge(cc, cw, wc, key=lambda x: x.c))
+        c = cc + cw + wc
+        c.sort()
         g = ATF(walk=walk, buses=c)
         g.cut()
         return g
@@ -102,9 +102,9 @@ class ATF:
         l = math.inf
         sequence_nodes = []
         route_names = []
-        start_index = bisect_left(self.buses, t, key=lambda x: x.c[0])
+        start_index = bisect_left(self.buses, t, key=lambda x: x.d)
         if start_index < self.size:
-            l = self.buses[start_index].c[1]
+            l = self.buses[start_index].a
             sequence_nodes = self.buses[start_index].nodes
             route_names = self.buses[start_index].route_names
         walk_time = t + self.walk.w
@@ -120,7 +120,8 @@ def min_atf(f1: ATF, f2: ATF):
     else:
         walk = f1.walk
 
-    buses = list(merge(f1.buses, f2.buses, key=lambda x: x.c))
+    buses = f1.buses + f2.buses
+    buses.sort()
     g = ATF(walk=walk, buses=buses)
     g.cut()
     return g
