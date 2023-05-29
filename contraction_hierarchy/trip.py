@@ -6,9 +6,7 @@ from functools import total_ordering
 @total_ordering
 class Bus:
 
-    def __init__(self, nodes: List[int], route_names: List[str], c: Tuple[int, int] = None):
-        if not c:
-            c = []
+    def __init__(self, nodes: List[int], route_names: List[str], c: Tuple[int, int]):
 
         self.nodes = nodes
         self.d, self.a = c
@@ -23,9 +21,7 @@ class Bus:
 
 class Walk:
 
-    def __init__(self, nodes: List[int], w: int = None):
-        if not w:
-            w = math.inf
+    def __init__(self, nodes: List[int], w: int):
 
         self.nodes = nodes
         self.w = w
