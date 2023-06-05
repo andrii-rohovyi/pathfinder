@@ -47,12 +47,8 @@ class FCH:
                 elif self.graph.hierarchy[node] < self.graph.hierarchy[winner_node]:
                     self._update_vertex(node, winner_node, winner_weight, True, mode='all')
                 elif self.candidate_route_names[winner_node][-1] == 'walk':
-                    down_move = (self.graph.hierarchy[self.candidate_sequences[winner_node][-2]]
-                                 > self.graph.hierarchy[node])
                     self._update_vertex(node, winner_node, winner_weight, down_move=down_move, mode='bus')
                 else:
-                    down_move = (self.graph.hierarchy[self.candidate_sequences[winner_node][-2]]
-                                 > self.graph.hierarchy[node])
                     self._update_vertex(node, winner_node, winner_weight, down_move=down_move, mode='walk')
 
             try:
