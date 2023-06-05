@@ -40,13 +40,20 @@ class FCH:
 
             for node in self.graph.graph[winner_node]:
                 if not self.candidate_down_move[winner_node]:
-                    if self.graph.hierarchy[node] > self.graph.hierarchy[winner_node]:
-                        self._update_vertex(node, winner_node, winner_weight, False)
-                    elif self.target in self.graph.geometrical_containers[node]:
-                        self._update_vertex(node, winner_node, winner_weight, True)
-                elif ((self.graph.hierarchy[node] < self.graph.hierarchy[winner_node]) &
-                      (self.target in self.graph.geometrical_containers[node])):
-                    self._update_vertex(node, winner_node, winner_weight, True)
+                    if self.graph.hierarchy[node] < self.graph.hierarchy[winner_node]:
+                        self._update_vertex(node, winner_node, winner_weight, True, mode='all')
+                    else:
+                        self._update_vertex(node, winner_node, winner_weight, False, mode='all')
+                elif self.graph.hierarchy[node] < self.graph.hierarchy[winner_node]:
+                    self._update_vertex(node, winner_node, winner_weight, True, mode='all')
+                elif self.candidate_route_names[winner_node][-1] == 'walk':
+                    down_move = (self.graph.hierarchy[self.candidate_sequences[winner_node][-2]]
+                                 > self.graph.hierarchy[node])
+                    self._update_vertex(node, winner_node, winner_weight, down_move=down_move, mode='bus')
+                else:
+                    down_move = (self.graph.hierarchy[self.candidate_sequences[winner_node][-2]]
+                                 > self.graph.hierarchy[node])
+                    self._update_vertex(node, winner_node, winner_weight, down_move=down_move, mode='walk')
 
             try:
                 winner_node, winner_weight = self.candidate_priorities.popitem()
@@ -74,8 +81,13 @@ class FCH:
             'duration': to_milliseconds(time.monotonic() - start_time)
         }
 
-    def _update_vertex(self, node, winner_node, winner_weight, down_move: bool):
-        new_weight, sequence_nodes, route_names = self.graph.graph[winner_node][node].arrival(winner_weight)
+    def _update_vertex(self, node, winner_node, winner_weight, down_move: bool, mode: str):
+        if mode == 'bus':
+            new_weight, sequence_nodes, route_names = self.graph.graph[winner_node][node].arrival_bus(winner_weight)
+        elif mode == 'walk':
+            new_weight, sequence_nodes, route_names = self.graph.graph[winner_node][node].arrival_walk(winner_weight)
+        else:
+            new_weight, sequence_nodes, route_names = self.graph.graph[winner_node][node].arrival(winner_weight)
         if node in self.candidate_weights.keys():
             if new_weight < self.candidate_weights[node]:
                 self.candidate_down_move[node] = down_move
@@ -89,3 +101,8 @@ class FCH:
             self.candidate_priorities[node] = new_weight
             self.candidate_sequences[node] = self.candidate_sequences[winner_node] + sequence_nodes[1:]
             self.candidate_route_names[node] = self.candidate_route_names[winner_node] + route_names
+
+
+
+
+

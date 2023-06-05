@@ -61,8 +61,7 @@ class TransportGraph:
 
         return shortcuts_inserted - edges_removed
 
-    @property
-    def contraction_hierarchy(self):
+    def contraction_hierarchy(self, just_buses=True):
         new_graph = ContactionTransportGraph(self.graph, self.in_nodes, self.nodes)
         in_nodes = deepcopy(self.in_nodes)
         graph = deepcopy(self.graph)
@@ -78,7 +77,10 @@ class TransportGraph:
                         if previous_node != next_node:
                             # calculate new connection function
 
-                            new_f = g.composition(f)
+                            if just_buses:
+                                new_f = g.composition_buses(f)
+                            else:
+                                new_f = g.composition(f)
 
                             h = graph[previous_node].get(next_node, None)
                             if h:
