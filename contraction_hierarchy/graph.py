@@ -32,12 +32,14 @@ class TransportGraph:
 
         for adjacent_node, node in set(transport_connections_dict.keys()).union(set(walk_connections_dict.keys())):
             nodes_sequence = [adjacent_node, node]
-            walk = Walk(nodes=nodes_sequence, w=walk_connections_dict.get((adjacent_node, node), math.inf))
+            walk_duration = walk_connections_dict.get((adjacent_node, node), math.inf)
+            walk = Walk(nodes=nodes_sequence, w=walk_duration)
             transport_connections_nodes_dict = transport_connections_dict.get((adjacent_node, node),
                                                                               {'dep_arr': [], 'route_I': []})
             buses = [Bus(nodes=nodes_sequence, c=c,
                          route_names=[transport_connections_nodes_dict['route_I'][i]])
-                     for i, c in enumerate(transport_connections_nodes_dict['dep_arr'])]
+                     for i, c in enumerate(transport_connections_nodes_dict['dep_arr'])
+                     if c[1] - c[0] <= walk_duration]
             self.in_nodes[node][adjacent_node] = self.graph[adjacent_node][node] = ATF(walk=walk, buses=buses)
             self.nodes.add(adjacent_node)
             self.nodes.add(node)
