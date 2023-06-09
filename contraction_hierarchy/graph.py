@@ -40,7 +40,9 @@ class TransportGraph:
                          route_names=[transport_connections_nodes_dict['route_I'][i]])
                      for i, c in enumerate(transport_connections_nodes_dict['dep_arr'])
                      if c[1] - c[0] <= walk_duration]
-            self.in_nodes[node][adjacent_node] = self.graph[adjacent_node][node] = ATF(walk=walk, buses=buses)
+            g = ATF(walk=walk, buses=buses)
+            g.cut()
+            self.in_nodes[node][adjacent_node] = self.graph[adjacent_node][node] = g
             self.nodes.add(adjacent_node)
             self.nodes.add(node)
 
