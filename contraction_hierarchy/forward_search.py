@@ -54,9 +54,9 @@ class FCH:
                 message = f"Target {self.target} not reachable from node {self.source}"
                 logging.warning(message)
                 return {
-                    'path': self.candidate_sequences[winner_node],
-                    'routes': self.candidate_route_names[winner_node],
-                    'arrival': winner_weight,
+                    'path': [],
+                    'routes': [],
+                    'arrival': math.inf,
                     'duration': to_milliseconds(time.monotonic() - start_time)
                 }
         if exception:
