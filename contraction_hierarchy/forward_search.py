@@ -2,6 +2,7 @@ from typing import Union
 import heapdict
 import time
 import math
+import logging
 
 from graph import ContactionTransportGraph
 from algorithms_wrapper import _check_running_time
@@ -47,7 +48,17 @@ class FCH:
                       (self.target in self.graph.geometrical_containers[node])):
                     self._update_vertex(node, winner_node, winner_weight, True)
 
-            winner_node, winner_weight = self.candidate_priorities.popitem()
+            try:
+                winner_node, winner_weight = self.candidate_priorities.popitem()
+            except IndexError:
+                message = f"Target {self.target} not reachable from node {self.source}"
+                logging.warning(message)
+                return {
+                    'path': self.candidate_sequences[winner_node],
+                    'routes': self.candidate_route_names[winner_node],
+                    'arrival': winner_weight,
+                    'duration': to_milliseconds(time.monotonic() - start_time)
+                }
         if exception:
             return {
                 'path': winner_route,
