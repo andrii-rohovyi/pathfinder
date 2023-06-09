@@ -28,7 +28,6 @@ class FCH:
                       ) -> dict:
 
         exception = None
-        winner_route = []
         start_time = time.monotonic()
 
         winner_node = self.source
@@ -64,7 +63,7 @@ class FCH:
                 }
         if exception:
             return {
-                'path': winner_route,
+                'path': self.candidate_sequences[winner_node],
                 'routes': self.candidate_route_names[winner_node],
                 'arrival': winner_weight,
                 'duration': to_milliseconds(time.monotonic() - start_time)
