@@ -24,14 +24,10 @@ class ATF:
         i = 0
         while i < self.size:
             if r:
-                d, a = r[-1].d,  r[-1].a
+                d, a = r[-1].d, r[-1].a
                 if self.buses[i].a > a:
                     if d < self.buses[i].d:
                         r.append(self.buses[i])
-                    i += 1
-                elif d == self.buses[i].d:
-                    r.pop()
-                    r.append(self.buses[i])
                     i += 1
                 else:
                     r.pop()
