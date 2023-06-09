@@ -44,7 +44,7 @@ class FCH:
                         self._update_vertex(node, winner_node, winner_weight, True, mode='all')
                     else:
                         self._update_vertex(node, winner_node, winner_weight, False, mode='all')
-                elif self.graph.hierarchy[node] < self.graph.hierarchy[winner_node]:
+                elif self.graph.hierarchy[node] < self.candidate_max_hierarchy[winner_node]:
                     self._update_vertex(node, winner_node, winner_weight, True, mode='all')
                 elif self.candidate_route_names[winner_node][-1] == 'walk':
                     self._update_vertex(node, winner_node, winner_weight, down_move=down_move, mode='bus')
