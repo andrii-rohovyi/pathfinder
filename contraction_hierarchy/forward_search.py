@@ -43,12 +43,12 @@ class FCH:
                         self._update_vertex(node, winner_node, winner_weight, True, mode='all')
                     else:
                         self._update_vertex(node, winner_node, winner_weight, False, mode='all')
-                elif self.graph.hierarchy[node] < self.candidate_max_hierarchy[winner_node]:
+                elif self.graph.hierarchy[node] < self.graph.hierarchy[winner_node]:
                     self._update_vertex(node, winner_node, winner_weight, True, mode='all')
                 elif self.candidate_route_names[winner_node][-1] == 'walk':
-                    self._update_vertex(node, winner_node, winner_weight, down_move=down_move, mode='bus')
+                    self._update_vertex(node, winner_node, winner_weight, down_move=False, mode='bus')
                 else:
-                    self._update_vertex(node, winner_node, winner_weight, down_move=down_move, mode='walk')
+                    self._update_vertex(node, winner_node, winner_weight, down_move=False, mode='walk')
 
             try:
                 winner_node, winner_weight = self.candidate_priorities.popitem()
@@ -96,8 +96,3 @@ class FCH:
             self.candidate_priorities[node] = new_weight
             self.candidate_sequences[node] = self.candidate_sequences[winner_node] + sequence_nodes[1:]
             self.candidate_route_names[node] = self.candidate_route_names[winner_node] + route_names
-
-
-
-
-
