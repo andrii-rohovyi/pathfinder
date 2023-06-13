@@ -40,11 +40,10 @@ class FCH:
 
             for node in self.graph.graph[winner_node]:
                 if not self.candidate_down_move[winner_node]:
-                    if ((self.graph.hierarchy[node] < self.graph.hierarchy[winner_node]) &
-                            (self.target in self.graph.geometrical_containers[node])):
-                        self._update_vertex(node, winner_node, winner_weight, True)
-                    else:
+                    if self.graph.hierarchy[node] > self.graph.hierarchy[winner_node]:
                         self._update_vertex(node, winner_node, winner_weight, False)
+                    elif self.target in self.graph.geometrical_containers[node]:
+                        self._update_vertex(node, winner_node, winner_weight, True)
                 elif ((self.graph.hierarchy[node] < self.graph.hierarchy[winner_node]) &
                       (self.target in self.graph.geometrical_containers[node])):
                     self._update_vertex(node, winner_node, winner_weight, True)
