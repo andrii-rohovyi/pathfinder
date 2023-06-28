@@ -118,6 +118,32 @@ class ATF:
         g.cut()
         return g
 
+    def composition_buses(self, f):
+        c = []
+
+        w = self.walk.w + f.walk.w
+        w_nodes = f.walk.nodes + self.walk.nodes[1:]
+        walk = Walk(nodes=w_nodes, w=w)
+
+        i = 0
+        j = 0
+        while i < f.size and j < self.size:
+            if i + 1 < f.size and f.buses[i + 1].a <= self.buses[j].d:
+                i += 1
+            elif f.buses[i].a <= self.buses[j].d:
+                cc_c = (f.buses[i].d, self.buses[j].a)
+                cc_nodes = f.buses[i].nodes + self.buses[j].nodes[1:]
+                cc_route_names = f.buses[i].route_names + self.buses[j].route_names
+                bus = Bus(nodes=cc_nodes, c=cc_c, route_names=cc_route_names)
+                c.append(bus)
+                i += 1
+                j += 1
+            else:
+                j += 1
+
+        g = ATF(walk=walk, buses=c)
+        return g
+
     def arrival(self, t: int):
         l = math.inf
         sequence_nodes = []
@@ -132,6 +158,22 @@ class ATF:
             return walk_time, self.walk.nodes, self.walk.route_names
         else:
             return l, sequence_nodes, route_names
+
+    def arrival_walk(self, t: int):
+        walk_time = t + self.walk.w
+        return walk_time, self.walk.nodes, self.walk.route_names
+
+    def arrival_bus(self, t: int):
+        l = math.inf
+        sequence_nodes = []
+        route_names = []
+        start_index = bisect_left(self.buses, t, key=lambda x: x.d)
+        if start_index < self.size:
+            l = self.buses[start_index].a
+            sequence_nodes = self.buses[start_index].nodes
+            route_names = self.buses[start_index].route_names
+
+        return l, sequence_nodes, route_names
 
 
 def min_atf(f1: ATF, f2: ATF):
