@@ -24,7 +24,9 @@ class FCH:
         self.candidate_down_move = {self.source: False}
 
     def shortest_path(self,
-                      duration: Union[float, None] = None
+                      duration: Union[float, None] = None,
+                      search_with_switching_graphs=True,
+                      geometrical_containers=True
                       ) -> dict:
 
         exception = None
@@ -45,9 +47,9 @@ class FCH:
                         self._update_vertex(node, winner_node, winner_weight, False, mode='all')
                 elif self.graph.hierarchy[node] < self.graph.hierarchy[winner_node]:
                     self._update_vertex(node, winner_node, winner_weight, True, mode='all')
-                elif self.candidate_route_names[winner_node][-1] == 'walk':
+                elif search_with_switching_graphs & (self.candidate_route_names[winner_node][-1] == 'walk'):
                     self._update_vertex(node, winner_node, winner_weight, down_move=False, mode='bus')
-                else:
+                elif search_with_switching_graphs:
                     self._update_vertex(node, winner_node, winner_weight, down_move=False, mode='walk')
 
             try:
@@ -76,7 +78,7 @@ class FCH:
             'duration': to_milliseconds(time.monotonic() - start_time)
         }
 
-    def _update_vertex(self, node, winner_node, winner_weight, down_move: bool, mode: str):
+    def _update_vertex(self, node, winner_node, winner_weight, down_move: bool, mode: str = 'all'):
         if mode == 'bus':
             new_weight, sequence_nodes, route_names = self.graph.graph[winner_node][node].arrival_bus(winner_weight)
         elif mode == 'walk':
