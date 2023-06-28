@@ -30,23 +30,22 @@ class FCH:
                       ) -> dict:
 
         exception = None
-        start_time = time.monotonic()
 
         winner_node = self.source
         winner_weight = self.start_time
 
         if search_with_switching_graphs:
-
+            start_time = time.monotonic()
             while (winner_node != self.target) and (not exception):
 
                 exception = _check_running_time(start_time, duration, "FCH")
 
                 for node in self.graph.graph[winner_node]:
                     if not self.candidate_down_move[winner_node]:
-                        if self.graph.hierarchy[node] < self.graph.hierarchy[winner_node]:
-                            self._update_vertex_with_mode(node, winner_node, winner_weight, True, mode='all')
-                        else:
+                        if self.graph.hierarchy[node] > self.graph.hierarchy[winner_node]:
                             self._update_vertex_with_mode(node, winner_node, winner_weight, False, mode='all')
+                        else:
+                            self._update_vertex_with_mode(node, winner_node, winner_weight, True, mode='all')
                     elif self.graph.hierarchy[node] < self.graph.hierarchy[winner_node]:
                         self._update_vertex_with_mode(node, winner_node, winner_weight, True, mode='all')
                     elif self.candidate_route_names[winner_node][-1] == 'walk':
@@ -66,18 +65,19 @@ class FCH:
                         'duration': to_milliseconds(time.monotonic() - start_time)
                     }
         elif geometrical_containers:
+            start_time = time.monotonic()
             while (winner_node != self.target) and (not exception):
 
                 exception = _check_running_time(start_time, duration, "FCH")
 
                 for node in self.graph.graph[winner_node]:
                     if not self.candidate_down_move[winner_node]:
-                        if self.graph.hierarchy[node] < self.graph.hierarchy[winner_node]:
-                            self._update_vertex(node, winner_node, winner_weight, True)
-                        else:
+                        if self.graph.hierarchy[node] > self.graph.hierarchy[winner_node]:
                             self._update_vertex(node, winner_node, winner_weight, False)
-                    elif ((self.graph.hierarchy[node] < self.graph.hierarchy[winner_node])
-                          and (self.target in self.graph.geometrical_containers[node])):
+                        elif self.target in self.graph.geometrical_containers[node]:
+                            self._update_vertex(node, winner_node, winner_weight, True)
+                    elif ((self.graph.hierarchy[node] < self.graph.hierarchy[winner_node]) &
+                          (self.target in self.graph.geometrical_containers[node])):
                         self._update_vertex(node, winner_node, winner_weight, True)
                 try:
                     winner_node, winner_weight = self.candidate_priorities.popitem()
@@ -91,16 +91,17 @@ class FCH:
                         'duration': to_milliseconds(time.monotonic() - start_time)
                     }
         else:
+            start_time = time.monotonic()
             while (winner_node != self.target) and (not exception):
 
                 exception = _check_running_time(start_time, duration, "FCH")
 
                 for node in self.graph.graph[winner_node]:
                     if not self.candidate_down_move[winner_node]:
-                        if self.graph.hierarchy[node] < self.graph.hierarchy[winner_node]:
-                            self._update_vertex(node, winner_node, winner_weight, True)
-                        else:
+                        if self.graph.hierarchy[node] > self.graph.hierarchy[winner_node]:
                             self._update_vertex(node, winner_node, winner_weight, False)
+                        else:
+                            self._update_vertex(node, winner_node, winner_weight, True)
                     elif self.graph.hierarchy[node] < self.graph.hierarchy[winner_node]:
                         self._update_vertex(node, winner_node, winner_weight, True)
 
