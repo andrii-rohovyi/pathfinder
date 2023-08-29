@@ -68,11 +68,10 @@ class TransportGraph:
         for index in tqdm(range(len(self.nodes))):
             node = new_graph.contraction_priority.popitem()[0]
             new_depth = new_graph.depth[node] + 1
-            previous_node_items = in_nodes[node].items()
-            if list(previous_node_items):
-                in_nodes_last = list(previous_node_items)[-1][0]
+            if in_nodes[node]:
 
-                for previous_node, f in previous_node_items:
+                while in_nodes[node]:
+                    previous_node, f = in_nodes[node].popitem()
                     for next_node, g in graph[node].items():
                         if previous_node != next_node:
                             # calculate new connection function
@@ -87,18 +86,19 @@ class TransportGraph:
                                 new_f = min_atf(new_f, h)
                             in_nodes[next_node][previous_node] = graph[previous_node][next_node] = new_f
                             new_graph.in_nodes[next_node][previous_node] = new_graph.graph[previous_node][next_node] = new_f
-                            if previous_node == in_nodes_last:
+                            if not in_nodes[node]:
                                 new_graph.depth[next_node] = max(new_graph.depth[next_node], new_depth)
                                 new_graph.contraction_priority[next_node] = (new_graph.edge_difference(next_node)
-                                                                             + new_graph.depth[next_node])
-                        if previous_node == in_nodes_last:
+                                                                                + new_graph.depth[next_node])
+                        if not in_nodes[node]:
                             del in_nodes[next_node][node]
                     new_graph.depth[previous_node] = max(new_graph.depth[previous_node], new_depth)
                     new_graph.contraction_priority[previous_node] = (new_graph.edge_difference(previous_node)
                                                                      + new_graph.depth[previous_node])
                     del graph[previous_node][node]
             else:
-                for next_node, g in graph[node].items():
+                while graph[node]:
+                    next_node, g = graph[node].popitem()
                     new_graph.depth[next_node] = max(new_graph.depth[next_node], new_depth)
                     new_graph.contraction_priority[next_node] = (new_graph.edge_difference(next_node)
                                                                  + new_graph.depth[next_node])
