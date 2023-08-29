@@ -80,16 +80,17 @@ class TransportGraph:
                                 new_f = g.composition_buses(f)
                             else:
                                 new_f = g.composition(f)
-
-                            h = graph[previous_node].get(next_node, None)
-                            if h:
-                                new_f = min_atf(new_f, h)
-                            in_nodes[next_node][previous_node] = graph[previous_node][next_node] = new_f
-                            new_graph.in_nodes[next_node][previous_node] = new_graph.graph[previous_node][next_node] = new_f
-                            if not in_nodes[node]:
-                                new_graph.depth[next_node] = max(new_graph.depth[next_node], new_depth)
-                                new_graph.contraction_priority[next_node] = (new_graph.edge_difference(next_node)
-                                                                                + new_graph.depth[next_node])
+                            if new_f:
+                                h = graph[previous_node].get(next_node, None)
+                                if h:
+                                    new_f = min_atf(new_f, h)
+                                in_nodes[next_node][previous_node] = graph[previous_node][next_node] = new_f
+                                new_graph.in_nodes[next_node][previous_node] = new_graph.graph[previous_node][
+                                    next_node] = new_f
+                                if not in_nodes[node]:
+                                    new_graph.depth[next_node] = max(new_graph.depth[next_node], new_depth)
+                                    new_graph.contraction_priority[next_node] = (new_graph.edge_difference(next_node)
+                                                                                 + new_graph.depth[next_node])
                         if not in_nodes[node]:
                             del in_nodes[next_node][node]
                     new_graph.depth[previous_node] = max(new_graph.depth[previous_node], new_depth)

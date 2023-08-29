@@ -114,9 +114,9 @@ class ATF:
 
         c = cc + cw + wc
         c.sort()
-        g = ATF(walk=walk, buses=c)
-        g.cut()
-        return g
+        if (w != math.inf) or c:
+            g = ATF(walk=walk, buses=c)
+            return g
 
     def composition_buses(self, f):
         c = []
@@ -141,8 +141,9 @@ class ATF:
             else:
                 j += 1
 
-        g = ATF(walk=walk, buses=c)
-        return g
+        if (w != math.inf) or c:
+            g = ATF(walk=walk, buses=c)
+            return g
 
     def arrival(self, t: int):
         l = math.inf
