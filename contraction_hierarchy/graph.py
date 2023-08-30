@@ -1,5 +1,6 @@
 import pandas as pd
 import math
+import numpy as np
 from copy import deepcopy
 from collections import defaultdict
 from tqdm import tqdm
@@ -45,6 +46,29 @@ class TransportGraph:
             self.in_nodes[node][adjacent_node] = self.graph[adjacent_node][node] = g
             self.nodes.add(adjacent_node)
             self.nodes.add(node)
+
+    @property
+    def edges_cnt(self):
+        edges_sum = 0
+        for i, v in self.graph.items():
+            edges_sum += len(v)
+        return edges_sum
+
+    @property
+    def nodes_cnt(self):
+        return len(self.nodes)
+
+    @property
+    def timetable_stats(self):
+        timetables = []
+        for i, v in self.graph.items():
+            for i0, v0 in v.items():
+                timetables += [len(v0.buses)]
+        timetables = np.array(timetables)
+        return {'min_size': timetables.min(),
+                'mean_size': timetables.mean(),
+                'std_size': timetables.std(),
+                'max_size': timetables.max()}
 
     def edge_difference(self, node):
         out_nodes_cnt = len(self.graph[node])
