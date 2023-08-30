@@ -116,6 +116,7 @@ class ATF:
         c.sort()
         if (w != math.inf) or c:
             g = ATF(walk=walk, buses=c)
+            g.cut()
             return g
 
     def composition_buses(self, f):
