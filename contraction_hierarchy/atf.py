@@ -114,7 +114,7 @@ class ATF:
 
         c = cc + cw + wc
         c.sort()
-        if (w < 1000) or c:
+        if (w != math.inf) or c:
             g = ATF(walk=walk, buses=c)
             return g
 
@@ -141,7 +141,7 @@ class ATF:
             else:
                 j += 1
 
-        if (w < 1000) or c:
+        if (w != math.inf) or c:
             g = ATF(walk=walk, buses=c)
             return g
 
