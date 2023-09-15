@@ -27,12 +27,14 @@ class ATF:
                 d, a = r[-1].d, r[-1].a
                 if self.buses[i].a > a:
                     if d < self.buses[i].d:
-                        r.append(self.buses[i])
+                        if self.walk and (self.buses[i].a - self.buses[i].d <= self.walk.w):
+                            r.append(self.buses[i])
                     i += 1
                 else:
                     r.pop()
             else:
-                r += [self.buses[i]]
+                if self.walk and (self.buses[i].a - self.buses[i].d <= self.walk.w):
+                    r += [self.buses[i]]
                 i += 1
         self.buses = r
         self.size = len(r)
@@ -124,6 +126,7 @@ class ATF:
     def composition_buses(self, f):
         c = []
         walk = None
+        w = math.inf
         if self.walk.w and f.walk.w:
             w = self.walk.w + f.walk.w
             w_nodes = f.walk.nodes + self.walk.nodes[1:]
@@ -135,13 +138,14 @@ class ATF:
             if i + 1 < f.size and f.buses[i + 1].a <= self.buses[j].d:
                 i += 1
             elif f.buses[i].a <= self.buses[j].d:
-                cc_c = (f.buses[i].d, self.buses[j].a)
-                cc_nodes = f.buses[i].nodes + self.buses[j].nodes[1:]
-                cc_route_names = f.buses[i].route_names + self.buses[j].route_names
-                bus = Bus(nodes=cc_nodes, c=cc_c, route_names=cc_route_names)
-                c.append(bus)
-                i += 1
+                if walk and (self.buses[j].a - f.buses[i].d <= w):
+                    cc_c = (f.buses[i].d, self.buses[j].a)
+                    cc_nodes = f.buses[i].nodes + self.buses[j].nodes[1:]
+                    cc_route_names = f.buses[i].route_names + self.buses[j].route_names
+                    bus = Bus(nodes=cc_nodes, c=cc_c, route_names=cc_route_names)
+                    c.append(bus)
                 j += 1
+                i += 1
             else:
                 j += 1
 
