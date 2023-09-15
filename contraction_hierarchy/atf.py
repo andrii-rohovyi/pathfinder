@@ -8,7 +8,7 @@ from trip import Walk, Bus
 class ATF:
     __slots__ = "walk", 'buses', 'size'
 
-    def __init__(self, walk: Walk, buses: List[Bus]):
+    def __init__(self, walk: Walk = None, buses: List[Bus] = None):
         """
 
         :param w:
@@ -40,9 +40,11 @@ class ATF:
     def composition(self, f):
         cc, cw, wc = [], [], []
 
-        w = self.walk.w + f.walk.w
-        w_nodes = f.walk.nodes + self.walk.nodes[1:]
-        walk = Walk(nodes=w_nodes, w=w)
+        walk = None
+        if self.walk and f.walk:
+            w = self.walk.w + f.walk.w
+            w_nodes = f.walk.nodes + self.walk.nodes[1:]
+            walk = Walk(nodes=w_nodes, w=w)
 
         i = 0
         j = 0
@@ -114,17 +116,18 @@ class ATF:
 
         c = cc + cw + wc
         c.sort()
-        if (w != math.inf) or c:
+        if walk or c:
             g = ATF(walk=walk, buses=c)
             g.cut()
             return g
 
     def composition_buses(self, f):
         c = []
-
-        w = self.walk.w + f.walk.w
-        w_nodes = f.walk.nodes + self.walk.nodes[1:]
-        walk = Walk(nodes=w_nodes, w=w)
+        walk = None
+        if self.walk.w and f.walk.w:
+            w = self.walk.w + f.walk.w
+            w_nodes = f.walk.nodes + self.walk.nodes[1:]
+            walk = Walk(nodes=w_nodes, w=w)
 
         i = 0
         j = 0
@@ -142,7 +145,7 @@ class ATF:
             else:
                 j += 1
 
-        if (w != math.inf) or c:
+        if walk or c:
             g = ATF(walk=walk, buses=c)
             return g
 
@@ -162,8 +165,10 @@ class ATF:
             return l, sequence_nodes, route_names
 
     def arrival_walk(self, t: int):
-        walk_time = t + self.walk.w
-        return walk_time, self.walk.nodes, self.walk.route_names
+        if self.walk:
+            walk_time = t + self.walk.w
+            return walk_time, self.walk.nodes, self.walk.route_names
+        return math.inf, [], []
 
     def arrival_bus(self, t: int):
         l = math.inf
@@ -179,10 +184,15 @@ class ATF:
 
 
 def min_atf(f1: ATF, f2: ATF):
-    if f1.walk.w > f2.walk.w:
-        walk = f2.walk
-    else:
+    if f1.walk and f2.walk:
+        if f1.walk.w > f2.walk.w:
+            walk = f2.walk
+        else:
+            walk = f1.walk
+    elif f1.walk:
         walk = f1.walk
+    else:
+        walk = f2.walk
 
     buses = f1.buses + f2.buses
     buses.sort()
