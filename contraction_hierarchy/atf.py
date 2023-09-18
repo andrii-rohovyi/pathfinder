@@ -27,13 +27,19 @@ class ATF:
                 d, a = r[-1].d, r[-1].a
                 if self.buses[i].a > a:
                     if d < self.buses[i].d:
-                        if self.walk and (self.buses[i].a - self.buses[i].d <= self.walk.w):
+                        if self.walk:
+                            if self.buses[i].a - self.buses[i].d <= self.walk.w:
+                                r.append(self.buses[i])
+                        else:
                             r.append(self.buses[i])
                     i += 1
                 else:
                     r.pop()
             else:
-                if self.walk and (self.buses[i].a - self.buses[i].d <= self.walk.w):
+                if self.walk:
+                    if self.buses[i].a - self.buses[i].d <= self.walk.w:
+                        r += [self.buses[i]]
+                else:
                     r += [self.buses[i]]
                 i += 1
         self.buses = r
@@ -52,7 +58,7 @@ class ATF:
         j = 0
         while i < f.size and j < self.size:
             if i + 1 < f.size and f.buses[i + 1].a <= self.buses[j].d:
-                if self.walk.w != math.inf:
+                if self.walk:
                     new_a = f.buses[i].a + self.walk.w
                     if new_a < self.buses[j].a:
                         cw_c = (f.buses[i].d, new_a)
@@ -65,7 +71,7 @@ class ATF:
             elif f.buses[i].a <= self.buses[j].d:
                 big_path = True
 
-                if self.walk.w != math.inf:
+                if self.walk:
                     new_a = f.buses[i].a + self.walk.w
                     if new_a < self.buses[j].a:
                         cw_c = (f.buses[i].d, new_a)
@@ -75,7 +81,7 @@ class ATF:
                         cw.append(bus)
                         big_path = False
 
-                if f.walk.w != math.inf:
+                if f.walk:
                     new_d = self.buses[j].d - f.walk.w
                     wc_c = (new_d, self.buses[j].a)
                     wc_nodes = f.walk.nodes + self.buses[j].nodes[1:]
@@ -92,7 +98,7 @@ class ATF:
                 i += 1
                 j += 1
             else:
-                if f.walk.w != math.inf:
+                if f.walk:
                     wc_c = (self.buses[j].d - f.walk.w, self.buses[j].a)
                     wc_nodes = f.walk.nodes + self.buses[j].nodes[1:]
                     wc_route_names = f.walk.route_names + self.buses[j].route_names
@@ -101,7 +107,7 @@ class ATF:
                 j += 1
 
         for s in range(i, f.size):
-            if self.walk.w != math.inf:
+            if self.walk:
                 cw_c = (f.buses[s].d, f.buses[s].a + self.walk.w)
                 cw_nodes = f.buses[s].nodes + self.walk.nodes[1:]
                 cw_route_names = f.buses[s].route_names + self.walk.route_names
@@ -109,7 +115,7 @@ class ATF:
                 cw.append(bus)
 
         for s in range(j, self.size):
-            if f.walk.w != math.inf:
+            if f.walk:
                 wc_c = (self.buses[s].d - f.walk.w, self.buses[s].a)
                 wc_nodes = f.walk.nodes + self.buses[s].nodes[1:]
                 wc_route_names = f.walk.route_names + self.buses[s].route_names
@@ -126,8 +132,7 @@ class ATF:
     def composition_buses(self, f):
         c = []
         walk = None
-        w = math.inf
-        if self.walk.w and f.walk.w:
+        if self.walk and f.walk:
             w = self.walk.w + f.walk.w
             w_nodes = f.walk.nodes + self.walk.nodes[1:]
             walk = Walk(nodes=w_nodes, w=w)
@@ -138,7 +143,7 @@ class ATF:
             if i + 1 < f.size and f.buses[i + 1].a <= self.buses[j].d:
                 i += 1
             elif f.buses[i].a <= self.buses[j].d:
-                if walk and (self.buses[j].a - f.buses[i].d <= w):
+                if (not walk) or (walk and (self.buses[j].a - f.buses[i].d <= w)):
                     cc_c = (f.buses[i].d, self.buses[j].a)
                     cc_nodes = f.buses[i].nodes + self.buses[j].nodes[1:]
                     cc_route_names = f.buses[i].route_names + self.buses[j].route_names
@@ -162,11 +167,11 @@ class ATF:
             l = self.buses[start_index].a
             sequence_nodes = self.buses[start_index].nodes
             route_names = self.buses[start_index].route_names
-        walk_time = t + self.walk.w
-        if walk_time < l:
-            return walk_time, self.walk.nodes, self.walk.route_names
-        else:
-            return l, sequence_nodes, route_names
+        if self.walk:
+            walk_time = t + self.walk.w
+            if walk_time < l:
+                return walk_time, self.walk.nodes, self.walk.route_names
+        return l, sequence_nodes, route_names
 
     def arrival_walk(self, t: int):
         if self.walk:
