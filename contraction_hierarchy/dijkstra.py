@@ -21,6 +21,7 @@ class Dijkstra:
         self.candidate_priorities = heapdict.heapdict({self.source: start_time})
         self.candidate_sequences = {self.source: [self.source]}
         self.candidate_route_names = {self.source: []}
+        self.candidate_roots = {self.source: [self.source]}
 
     def shortest_path(self,
                       duration: Union[float, None] = None,
@@ -47,6 +48,7 @@ class Dijkstra:
                 return {
                     'path': [],
                     'routes': [],
+                    'roots': [],
                     'arrival': math.inf,
                     'duration': to_milliseconds(time.monotonic() - start_time)
                 }
@@ -54,6 +56,7 @@ class Dijkstra:
             return {
                 'path': self.candidate_sequences[winner_node],
                 'routes': self.candidate_route_names[winner_node],
+                'roots': self.candidate_roots[winner_node],
                 'arrival': winner_weight,
                 'duration': to_milliseconds(time.monotonic() - start_time)
             }
@@ -61,6 +64,7 @@ class Dijkstra:
         return {
             'path': self.candidate_sequences[self.target],
             'routes': self.candidate_route_names[winner_node],
+            'roots': self.candidate_roots[winner_node],
             'arrival': winner_weight,
             'duration': to_milliseconds(time.monotonic() - start_time)
         }
@@ -72,9 +76,11 @@ class Dijkstra:
                 self.candidate_weights[node] = new_weight
                 self.candidate_priorities[node] = new_weight
                 self.candidate_sequences[node] = self.candidate_sequences[winner_node] + sequence_nodes[1:]
+                self.candidate_roots[node] = self.candidate_roots[winner_node] + [node]
                 self.candidate_route_names[node] = self.candidate_route_names[winner_node] + route_names
         elif new_weight != math.inf:
             self.candidate_weights[node] = new_weight
             self.candidate_priorities[node] = new_weight
             self.candidate_sequences[node] = self.candidate_sequences[winner_node] + sequence_nodes[1:]
+            self.candidate_roots[node] = self.candidate_roots[winner_node] + [node]
             self.candidate_route_names[node] = self.candidate_route_names[winner_node] + route_names
