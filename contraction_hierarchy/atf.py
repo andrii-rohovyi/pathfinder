@@ -158,11 +158,21 @@ class ATF:
             g = ATF(walk=walk, buses=c)
             return g
 
+    def arrival_by_bus_index(self, start_index):
+        l = math.inf
+        sequence_nodes = []
+        route_names = []
+        if start_index < self.size:
+            l = self.buses[start_index].a
+            sequence_nodes = self.buses[start_index].nodes
+            route_names = self.buses[start_index].route_names
+        return l, sequence_nodes, route_names
+
     def arrival(self, t: int):
         l = math.inf
         sequence_nodes = []
         route_names = []
-        start_index = bisect_left(self.buses, t, key=lambda x: x.d)
+        start_index = bisect_left(self.buses, t, key=lambda x: x.d, lo=0, hi=self.size)
         if start_index < self.size:
             l = self.buses[start_index].a
             sequence_nodes = self.buses[start_index].nodes
@@ -173,6 +183,26 @@ class ATF:
                 return walk_time, self.walk.nodes, self.walk.route_names
         return l, sequence_nodes, route_names
 
+    '''
+    def arrival(self, t: int):
+
+        start_index = bisect_left(self.buses, t, key=lambda x: x.d, lo=0, hi=self.size)
+        time_bus, sequence_nodes_bus, route_names_bus = self.arrival_by_bus_index(start_index)
+        time_walk, sequence_nodes_walk, route_names_walk = self.arrival_walk(t)
+
+        if time_walk < time_bus:
+            return time_walk, sequence_nodes_walk, route_names_walk
+        return time_bus, sequence_nodes_bus, route_names_bus
+   '''
+    def arrival_with_know_index(self, t: int, start_index):
+
+        time_walk, sequence_nodes_walk, route_names_walk = self.arrival_walk(t)
+        if start_index is not None:
+            time_bus, sequence_nodes_bus, route_names_bus = self.arrival_by_bus_index(start_index)
+            if time_walk > time_bus:
+                return time_bus, sequence_nodes_bus, route_names_bus
+        return time_walk, sequence_nodes_walk, route_names_walk
+
     def arrival_walk(self, t: int):
         if self.walk:
             walk_time = t + self.walk.w
@@ -180,16 +210,10 @@ class ATF:
         return math.inf, [], []
 
     def arrival_bus(self, t: int):
-        l = math.inf
-        sequence_nodes = []
-        route_names = []
-        start_index = bisect_left(self.buses, t, key=lambda x: x.d)
-        if start_index < self.size:
-            l = self.buses[start_index].a
-            sequence_nodes = self.buses[start_index].nodes
-            route_names = self.buses[start_index].route_names
 
-        return l, sequence_nodes, route_names
+        start_index = bisect_left(self.buses, t, key=lambda x: x.d, lo=0, hi=self.size)
+
+        return self.arrival_by_bus_index(start_index)
 
 
 def min_atf(f1: ATF, f2: ATF):

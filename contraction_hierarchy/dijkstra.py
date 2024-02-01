@@ -3,6 +3,7 @@ import heapdict
 import time
 import math
 import logging
+from bisect import bisect_left
 
 from graph import TransportGraph
 from algorithms_wrapper import _check_running_time
@@ -25,6 +26,7 @@ class Dijkstra:
 
     def shortest_path(self,
                       duration: Union[float, None] = None,
+                      optimized_binary_search: bool = True
                       ) -> dict:
 
         exception = None
@@ -36,9 +38,16 @@ class Dijkstra:
         while (winner_node != self.target) and (not exception):
 
             exception = _check_running_time(start_time, duration, "FCH")
+            if optimized_binary_search:
 
-            for node, f in self.graph.graph[winner_node].items():
-                self._update_vertex(node, winner_node, winner_weight, f)
+                departure = bisect_left(self.graph.nodes_schedule[winner_node], winner_weight)
+                nodes_indexes = self.graph.position_in_edge[winner_node].get(departure)
+
+                for node, f in self.graph.graph[winner_node].items():
+                    self._update_vertex_with_node_index(node, winner_node, winner_weight, nodes_indexes)
+            else:
+                for node, f in self.graph.graph[winner_node].items():
+                    self._update_vertex(node, winner_node, winner_weight, f)
 
             try:
                 winner_node, winner_weight = self.candidate_priorities.popitem()
@@ -71,6 +80,59 @@ class Dijkstra:
 
     def _update_vertex(self, node, winner_node, winner_weight, f):
         new_weight, sequence_nodes, route_names = f.arrival(winner_weight)
+        if node in self.candidate_weights.keys():
+            if new_weight < self.candidate_weights[node]:
+                self.candidate_weights[node] = new_weight
+                self.candidate_priorities[node] = new_weight
+                self.candidate_sequences[node] = self.candidate_sequences[winner_node] + sequence_nodes[1:]
+                self.candidate_roots[node] = self.candidate_roots[winner_node] + [node]
+                self.candidate_route_names[node] = self.candidate_route_names[winner_node] + route_names
+        elif new_weight != math.inf:
+            self.candidate_weights[node] = new_weight
+            self.candidate_priorities[node] = new_weight
+            self.candidate_sequences[node] = self.candidate_sequences[winner_node] + sequence_nodes[1:]
+            self.candidate_roots[node] = self.candidate_roots[winner_node] + [node]
+            self.candidate_route_names[node] = self.candidate_route_names[winner_node] + route_names
+
+    def _update_vertex_with_node_index(self, node, winner_node, winner_weight, nodes_indexes):
+        l = walk_time = math.inf
+        sequence_nodes = []
+        route_names = []
+        f = self.graph.graph[winner_node][node]
+        if nodes_indexes:
+            start_index = nodes_indexes[node]
+            if start_index < f.size:
+                l = f.buses[start_index].a
+                sequence_nodes = f.buses[start_index].nodes
+                route_names = f.buses[start_index].route_names
+        if f.walk:
+            walk_time = winner_weight + f.walk.w
+        if walk_time < l:
+            new_weight, sequence_nodes, route_names = walk_time, f.walk.nodes, f.walk.route_names
+        else:
+            new_weight, sequence_nodes, route_names = l, sequence_nodes, route_names
+
+        if node in self.candidate_weights.keys():
+            if new_weight < self.candidate_weights[node]:
+                self.candidate_weights[node] = new_weight
+                self.candidate_priorities[node] = new_weight
+                self.candidate_sequences[node] = self.candidate_sequences[winner_node] + sequence_nodes[1:]
+                self.candidate_roots[node] = self.candidate_roots[winner_node] + [node]
+                self.candidate_route_names[node] = self.candidate_route_names[winner_node] + route_names
+        elif new_weight != math.inf:
+            self.candidate_weights[node] = new_weight
+            self.candidate_priorities[node] = new_weight
+            self.candidate_sequences[node] = self.candidate_sequences[winner_node] + sequence_nodes[1:]
+            self.candidate_roots[node] = self.candidate_roots[winner_node] + [node]
+            self.candidate_route_names[node] = self.candidate_route_names[winner_node] + route_names
+
+    def _update_vertex_with_node_index_test(self, node, winner_node, winner_weight, nodes_indexes):
+        start_index = None
+        if nodes_indexes:
+            start_index = nodes_indexes[node]
+        new_weight, sequence_nodes, route_names = self.graph.graph[winner_node][node].arrival_with_know_index(
+            winner_weight, start_index)
+
         if node in self.candidate_weights.keys():
             if new_weight < self.candidate_weights[node]:
                 self.candidate_weights[node] = new_weight
