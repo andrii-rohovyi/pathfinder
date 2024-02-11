@@ -4,6 +4,8 @@ from copy import deepcopy
 from collections import defaultdict
 from tqdm import tqdm
 import heapdict
+import math
+from bisect import bisect_left
 
 from atf import ATF, min_atf
 from trip import Bus, Walk
@@ -29,6 +31,9 @@ class TransportGraph:
         self.graph = defaultdict(dict)
         self.in_nodes = defaultdict(dict)
         self.nodes = set()
+        self.node_time = defaultdict(set)
+        self.nodes_schedule = defaultdict(list)
+        self.position_in_edge = defaultdict(dict)
 
         for adjacent_node, node in set(transport_connections_dict.keys()).union(set(walk_connections_dict.keys())):
             nodes_sequence = [adjacent_node, node]
@@ -57,6 +62,15 @@ class TransportGraph:
     @property
     def nodes_cnt(self):
         return len(self.nodes)
+
+    def calculate_node_times(self):
+        for node1 in self.nodes:
+            for node in self.graph[node1]:
+                f = self.graph[node1][node]
+                f.edge_sectors()
+                for sector in f.sectors:
+                    if sector != math.inf:
+                        self.node_time[node1].add(sector)
 
     @property
     def timetable_stats(self):
@@ -135,6 +149,21 @@ class TransportGraph:
 
         return new_graph
 
+    def optimize_binary_search(self):
+        for node1, out in tqdm(self.graph.items()):
+            self.position_in_edge[node1] = {}
+            full_list = []
+            for node2, f in out.items():
+                full_list += [bus.d for bus in f.buses]
+
+            full_list = list(set(full_list))
+            full_list.sort()
+            self.nodes_schedule[node1] = full_list
+            for i, dep in enumerate(full_list):
+                self.position_in_edge[node1][i] = {}
+                for node2, f in out.items():
+                    self.position_in_edge[node1][i][node2] = bisect_left(f.buses, dep, key=lambda x: x.d)
+
 
 class ContactionTransportGraph(TransportGraph):
 
@@ -144,7 +173,12 @@ class ContactionTransportGraph(TransportGraph):
         self.nodes = deepcopy(nodes)
         self.hierarchy = {}
         self.geometrical_containers = {}
+        self.nodes_schedule_down = defaultdict(list)
+        self.position_in_edge_down = defaultdict(dict)
+        self.nodes_schedule = defaultdict(list)
+        self.position_in_edge = defaultdict(dict)
         self.depth = defaultdict(int)
+        self.node_time = defaultdict(set)
         self.contraction_priority = heapdict.heapdict()
         for x in nodes:
             self.contraction_priority[x] = self.edge_difference(x) + self.depth[x]
@@ -161,3 +195,30 @@ class ContactionTransportGraph(TransportGraph):
             for neighbour in self.graph[node]:
                 if self.hierarchy[neighbour] < self.hierarchy[node]:
                     self.dfs(visited, neighbour)
+
+    def optimize_binary_search(self):
+        for node1, out in tqdm(self.graph.items()):
+            self.position_in_edge[node1] = {}
+            self.position_in_edge_down[node1] = {}
+            full_list = []
+            down_list = []
+            for node2, f in out.items():
+                full_list += [bus.d for bus in f.buses]
+                if self.hierarchy[node2] < self.hierarchy[node1]:
+                    down_list += [bus.d for bus in f.buses]
+
+            full_list = list(set(full_list))
+            full_list.sort()
+            self.nodes_schedule[node1] = full_list
+            for i, dep in enumerate(full_list):
+                self.position_in_edge[node1][i] = {}
+                for node2, f in out.items():
+                    self.position_in_edge[node1][i][node2] = bisect_left(f.buses, dep, key=lambda x: x.d)
+
+            down_list = list(set(down_list))
+            down_list.sort()
+            self.nodes_schedule_down[node1] = down_list
+            for i, dep in enumerate(down_list):
+                self.position_in_edge_down[node1][i] = {}
+                for node2, f in out.items():
+                    self.position_in_edge_down[node1][i][node2] = bisect_left(f.buses, dep, key=lambda x: x.d)
