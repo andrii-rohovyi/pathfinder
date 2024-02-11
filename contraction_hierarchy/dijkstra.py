@@ -33,34 +33,52 @@ class Dijkstra:
 
         winner_node = self.source
         winner_weight = self.start_time
+        if optimized_binary_search:
 
-        start_time = time.monotonic()
-        while (winner_node != self.target) and (not exception):
+            start_time = time.monotonic()
+            while (winner_node != self.target) and (not exception):
 
-            exception = _check_running_time(start_time, duration, "FCH")
-            if optimized_binary_search:
+                exception = _check_running_time(start_time, duration, "Dijkstra")
 
                 departure = bisect_left(self.graph.nodes_schedule[winner_node], winner_weight)
                 nodes_indexes = self.graph.position_in_edge[winner_node].get(departure)
 
                 for node, f in self.graph.graph[winner_node].items():
                     self._update_vertex_with_node_index(node, winner_node, winner_weight, nodes_indexes)
-            else:
+
+                try:
+                    winner_node, winner_weight = self.candidate_priorities.popitem()
+                except IndexError:
+                    message = f"Target {self.target} not reachable from node {self.source}"
+                    logging.warning(message)
+                    return {
+                        'path': [],
+                        'routes': [],
+                        'roots': [],
+                        'arrival': math.inf,
+                        'duration': to_milliseconds(time.monotonic() - start_time)
+                    }
+        else:
+            start_time = time.monotonic()
+            while (winner_node != self.target) and (not exception):
+
+                exception = _check_running_time(start_time, duration, "Dijkstra")
+
                 for node, f in self.graph.graph[winner_node].items():
                     self._update_vertex(node, winner_node, winner_weight, f)
 
-            try:
-                winner_node, winner_weight = self.candidate_priorities.popitem()
-            except IndexError:
-                message = f"Target {self.target} not reachable from node {self.source}"
-                logging.warning(message)
-                return {
-                    'path': [],
-                    'routes': [],
-                    'roots': [],
-                    'arrival': math.inf,
-                    'duration': to_milliseconds(time.monotonic() - start_time)
-                }
+                try:
+                    winner_node, winner_weight = self.candidate_priorities.popitem()
+                except IndexError:
+                    message = f"Target {self.target} not reachable from node {self.source}"
+                    logging.warning(message)
+                    return {
+                        'path': [],
+                        'routes': [],
+                        'roots': [],
+                        'arrival': math.inf,
+                        'duration': to_milliseconds(time.monotonic() - start_time)
+                    }
         if exception:
             return {
                 'path': self.candidate_sequences[winner_node],

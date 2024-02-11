@@ -1,4 +1,3 @@
-import math
 from typing import Tuple, List
 from functools import total_ordering
 
@@ -11,6 +10,7 @@ class Bus:
         self.nodes = nodes
         self.d, self.a = c
         self.route_names = route_names
+        self.next_index = None
 
     def __lt__(self, other):
         return self.d < other.d

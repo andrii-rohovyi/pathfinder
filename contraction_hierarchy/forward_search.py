@@ -24,19 +24,28 @@ class FCH:
         self.candidate_roots = {self.source: [self.source]}
         self.candidate_route_names = {self.source: []}
         self.candidate_down_move = {self.source: False}
+        self.lower_upper_index = {self.source: (0, None)}
+        self.lower_index = {self.source: 0}
+        self.candidate_schedule = {self.source: self.graph.nodes_schedule[start_node]}
 
     def shortest_path(self,
                       duration: Union[float, None] = None,
                       search_with_switching_graphs=True,
                       geometrical_containers=True,
                       optimized_binary_search: bool = True,
-                      new_arrival=True
+                      optimized_binary_search_down: bool = True,
+                      next_index_optimization=True
                       ) -> dict:
 
         exception = None
 
         winner_node = self.source
         winner_weight = self.start_time
+
+        position_in_edge = self.graph.position_in_edge
+        nodes_schedule = self.graph.nodes_schedule
+        position_in_edge_down = self.graph.position_in_edge_down
+        nodes_schedule_down = self.graph.nodes_schedule_down
 
         if search_with_switching_graphs:
             start_time = time.monotonic()
@@ -59,6 +68,7 @@ class FCH:
 
                 try:
                     winner_node, winner_weight = self.candidate_priorities.popitem()
+
                 except IndexError:
                     message = f"Target {self.target} not reachable from node {self.source}"
                     logging.warning(message)
@@ -69,30 +79,127 @@ class FCH:
                         'duration': to_milliseconds(time.monotonic() - start_time)
                     }
         elif geometrical_containers:
-            start_time = time.monotonic()
-            while (winner_node != self.target) and (not exception):
+            if optimized_binary_search & optimized_binary_search_down:
+                if not next_index_optimization:
+                    start_time = time.monotonic()
+                    while (winner_node != self.target) and (not exception):
+                        exception = _check_running_time(start_time, duration, "FCH")
+                        if not self.candidate_down_move[winner_node]:
+                            departure = bisect_left(nodes_schedule[winner_node], winner_weight)
+                            nodes_indexes = position_in_edge[winner_node].get(departure)
 
-                exception = _check_running_time(start_time, duration, "FCH")
+                        else:
+                            departure = bisect_left(nodes_schedule_down[winner_node], winner_weight)
+                            nodes_indexes = position_in_edge_down[winner_node].get(departure)
+                        for node in self.graph.graph[winner_node]:
+                            if not self.candidate_down_move[winner_node]:
+                                if self.graph.hierarchy[node] > self.graph.hierarchy[winner_node]:
+                                    self._update_vertex_with_node_index(node, winner_node, winner_weight, False, nodes_indexes)
+                                elif self.target in self.graph.geometrical_containers[node]:
+                                    self._update_vertex_with_node_index(node, winner_node, winner_weight, True, nodes_indexes)
+                            elif ((self.graph.hierarchy[node] < self.graph.hierarchy[winner_node]) &
+                                  (self.target in self.graph.geometrical_containers[node])):
+                                self._update_vertex_with_node_index(node, winner_node, winner_weight, True, nodes_indexes)
 
-                if optimized_binary_search:
+                        try:
+                            winner_node, winner_weight = self.candidate_priorities.popitem()
+                        except IndexError:
+                            message = f"Target {self.target} not reachable from node {self.source}"
+                            logging.warning(message)
+                            return {
+                                'path': [],
+                                'routes': [],
+                                'arrival': math.inf,
+                                'duration': to_milliseconds(time.monotonic() - start_time)
+                            }
 
-                    if not self.candidate_down_move[winner_node]:
-                        departure = bisect_left(self.graph.nodes_schedule[winner_node], winner_weight)
-                        nodes_indexes = self.graph.position_in_edge[winner_node].get(departure)
-                    else:
-                        departure = bisect_left(self.graph.nodes_schedule_down[winner_node], winner_weight)
-                        nodes_indexes = self.graph.position_in_edge_down[winner_node].get(departure)
+                else:
+                    start_time = time.monotonic()
+                    while (winner_node != self.target) and (not exception):
 
+                        exception = _check_running_time(start_time, duration, "FCH")
+                        schedule = self.candidate_schedule[winner_node]
+                        lower_index = self.lower_index.get(winner_node, 0)
+                        departure = lower_index + bisect_left(schedule, winner_weight)
+                        if not self.candidate_down_move[winner_node]:
+                            nodes_indexes = position_in_edge[winner_node].get(departure)
+
+                        else:
+                            nodes_indexes = position_in_edge_down[winner_node].get(departure)
+
+                        for node in self.graph.graph[winner_node]:
+
+                            if not self.candidate_down_move[winner_node]:
+                                if self.graph.hierarchy[node] > self.graph.hierarchy[winner_node]:
+                                    self._update_vertex_with_node_index_new(node, winner_node, winner_weight, False,
+                                                                            nodes_indexes,
+                                                                            self.graph.nodes_schedule_sliced.get(node, {}).get(departure, []),
+                                                                            self.graph.nodes_schedule_lower_index.get(node, {}).get(departure, 0)
+                                                                            )
+                                elif self.target in self.graph.geometrical_containers[node]:
+                                    self._update_vertex_with_node_index_new(node, winner_node, winner_weight, True,
+                                                                            nodes_indexes,
+                                                                            self.graph.nodes_schedule_sliced_down.get(node,
+                                                                                                                 {}).get(
+                                                                                departure, []),
+                                                                            self.graph.nodes_schedule_lower_index_down.get(
+                                                                                node, {}).get(departure, 0))
+                            elif ((self.graph.hierarchy[node] < self.graph.hierarchy[winner_node]) &
+                                  (self.target in self.graph.geometrical_containers[node])):
+                                self._update_vertex_with_node_index_new(node, winner_node, winner_weight, True,
+                                                                        nodes_indexes,
+                                                                        self.graph.nodes_schedule_sliced_down.get(node,
+                                                                                                             {}).get(
+                                                                            departure, []),
+                                                                        self.graph.nodes_schedule_lower_index_down.get(node,
+                                                                                                                  {}).get(
+                                                                            departure, 0))
+
+                        try:
+                            winner_node, winner_weight = self.candidate_priorities.popitem()
+                        except IndexError:
+                            message = f"Target {self.target} not reachable from node {self.source}"
+                            logging.warning(message)
+                            return {
+                                'path': [],
+                                'routes': [],
+                                'arrival': math.inf,
+                                'duration': to_milliseconds(time.monotonic() - start_time)
+                            }
+            elif optimized_binary_search:
+                start_time = time.monotonic()
+                while (winner_node != self.target) and (not exception):
+                    exception = _check_running_time(start_time, duration, "FCH")
+                    departure = bisect_left(nodes_schedule[winner_node], winner_weight)
+                    nodes_indexes = position_in_edge[winner_node].get(departure)
                     for node in self.graph.graph[winner_node]:
                         if not self.candidate_down_move[winner_node]:
                             if self.graph.hierarchy[node] > self.graph.hierarchy[winner_node]:
-                                self._update_vertex_with_node_index(node, winner_node, winner_weight, False, nodes_indexes)
+                                self._update_vertex_with_node_index(node, winner_node, winner_weight, False,
+                                                                    nodes_indexes)
                             elif self.target in self.graph.geometrical_containers[node]:
-                                self._update_vertex_with_node_index(node, winner_node, winner_weight, False, nodes_indexes)
+                                self._update_vertex_with_node_index(node, winner_node, winner_weight, True,
+                                                                    nodes_indexes)
                         elif ((self.graph.hierarchy[node] < self.graph.hierarchy[winner_node]) &
                               (self.target in self.graph.geometrical_containers[node])):
                             self._update_vertex_with_node_index(node, winner_node, winner_weight, True, nodes_indexes)
-                else:
+
+                    try:
+                        winner_node, winner_weight = self.candidate_priorities.popitem()
+                    except IndexError:
+                        message = f"Target {self.target} not reachable from node {self.source}"
+                        logging.warning(message)
+                        return {
+                            'path': [],
+                            'routes': [],
+                            'arrival': math.inf,
+                            'duration': to_milliseconds(time.monotonic() - start_time)
+                        }
+            else:
+                start_time = time.monotonic()
+                while (winner_node != self.target) and (not exception):
+
+                    exception = _check_running_time(start_time, duration, "FCH")
                     for node in self.graph.graph[winner_node]:
                         if not self.candidate_down_move[winner_node]:
                             if self.graph.hierarchy[node] > self.graph.hierarchy[winner_node]:
@@ -102,17 +209,18 @@ class FCH:
                         elif ((self.graph.hierarchy[node] < self.graph.hierarchy[winner_node]) &
                               (self.target in self.graph.geometrical_containers[node])):
                             self._update_vertex(node, winner_node, winner_weight, True)
-                try:
-                    winner_node, winner_weight = self.candidate_priorities.popitem()
-                except IndexError:
-                    message = f"Target {self.target} not reachable from node {self.source}"
-                    logging.warning(message)
-                    return {
-                        'path': [],
-                        'routes': [],
-                        'arrival': math.inf,
-                        'duration': to_milliseconds(time.monotonic() - start_time)
-                    }
+                    try:
+                        winner_node, winner_weight = self.candidate_priorities.popitem()
+                    except IndexError:
+                        message = f"Target {self.target} not reachable from node {self.source}"
+                        logging.warning(message)
+                        return {
+                            'path': [],
+                            'routes': [],
+                            'arrival': math.inf,
+                            'duration': to_milliseconds(time.monotonic() - start_time)
+                        }
+
         else:
             start_time = time.monotonic()
             while (winner_node != self.target) and (not exception):
@@ -232,6 +340,49 @@ class FCH:
             self.candidate_roots[node] = self.candidate_roots[winner_node] + [node]
             self.candidate_sequences[node] = self.candidate_sequences[winner_node] + sequence_nodes[1:]
             self.candidate_route_names[node] = self.candidate_route_names[winner_node] + route_names
+
+    def _update_vertex_with_node_index_new(self, node, winner_node, winner_weight, down_move: bool, nodes_indexes,
+                                           schedule, lower_index):
+
+        l = walk_time = math.inf
+        sequence_nodes = []
+        route_names = []
+        f = self.graph.graph[winner_node][node]
+        if nodes_indexes:
+            start_index = nodes_indexes[node]
+            if start_index < f.size:
+                bus = f.buses[start_index]
+                l = bus.a
+                sequence_nodes = bus.nodes
+                route_names = bus.route_names
+
+        new_weight, sequence_nodes, route_names = min(walk_time, l), sequence_nodes[1:], route_names
+        if f.walk:
+            walk_time = winner_weight + f.walk.w
+        if walk_time < l:
+            new_weight, sequence_nodes, route_names = walk_time, f.walk.nodes, f.walk.route_names
+        else:
+            new_weight, sequence_nodes, route_names = l, sequence_nodes, route_names
+
+        if node in self.candidate_weights:
+            if new_weight < self.candidate_weights[node]:
+                self.candidate_down_move[node] = down_move
+                self.candidate_weights[node] = new_weight
+                self.candidate_priorities[node] = new_weight
+                self.candidate_sequences[node] = self.candidate_sequences[winner_node] + sequence_nodes[1:]
+                self.candidate_roots[node] = self.candidate_roots[winner_node] + [node]
+                self.candidate_route_names[node] = self.candidate_route_names[winner_node] + route_names
+                self.candidate_schedule[node] = schedule
+                self.lower_index[node] = lower_index
+        elif new_weight != math.inf:
+            self.candidate_down_move[node] = down_move
+            self.candidate_weights[node] = new_weight
+            self.candidate_priorities[node] = new_weight
+            self.candidate_roots[node] = self.candidate_roots[winner_node] + [node]
+            self.candidate_sequences[node] = self.candidate_sequences[winner_node] + sequence_nodes[1:]
+            self.candidate_route_names[node] = self.candidate_route_names[winner_node] + route_names
+            self.candidate_schedule[node] = schedule
+            self.lower_index[node] = lower_index
 
     def _update_vertex_with_node_index_test(self, node, winner_node, winner_weight, down_move: bool, nodes_indexes):
         # todo: work slower then the main method
