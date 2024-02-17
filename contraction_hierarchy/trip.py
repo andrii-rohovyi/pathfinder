@@ -10,7 +10,6 @@ class Bus:
         self.nodes = nodes
         self.d, self.a = c
         self.route_names = route_names
-        self.next_index = None
 
     def __lt__(self, other):
         return self.d < other.d
@@ -26,4 +25,6 @@ class Walk:
         self.nodes = nodes
         self.w = w
         self.route_names = ['walk'] * (len(nodes) - 1)
+
+
 
