@@ -30,10 +30,8 @@ class FCH:
 
     def shortest_path(self,
                       duration: Union[float, None] = None,
-                      search_with_switching_graphs=True,
                       geometrical_containers=True,
                       optimized_binary_search: bool = True,
-                      optimized_binary_search_down: bool = True,
                       next_index_optimization=True
                       ) -> dict:
 
@@ -44,62 +42,28 @@ class FCH:
 
         position_in_edge = self.graph.position_in_edge
         nodes_schedule = self.graph.nodes_schedule
-        position_in_edge_down = self.graph.position_in_edge_down
-        nodes_schedule_down = self.graph.nodes_schedule_down
 
-        if search_with_switching_graphs:
-            start_time = time.monotonic()
-            while (winner_node != self.target) and (not exception):
-
-                exception = _check_running_time(start_time, duration, "FCH")
-
-                for node in self.graph.graph[winner_node]:
-                    if not self.candidate_down_move[winner_node]:
-                        if self.graph.hierarchy[node] > self.graph.hierarchy[winner_node]:
-                            self._update_vertex_with_mode(node, winner_node, winner_weight, False, mode='all')
-                        else:
-                            self._update_vertex_with_mode(node, winner_node, winner_weight, True, mode='all')
-                    elif self.graph.hierarchy[node] < self.graph.hierarchy[winner_node]:
-                        self._update_vertex_with_mode(node, winner_node, winner_weight, True, mode='all')
-                    elif self.candidate_route_names[winner_node][-1] == 'walk':
-                        self._update_vertex_with_mode(node, winner_node, winner_weight, down_move=False, mode='bus')
-                    else:
-                        self._update_vertex_with_mode(node, winner_node, winner_weight, down_move=False, mode='walk')
-
-                try:
-                    winner_node, winner_weight = self.candidate_priorities.popitem()
-
-                except IndexError:
-                    message = f"Target {self.target} not reachable from node {self.source}"
-                    logging.warning(message)
-                    return {
-                        'path': [],
-                        'routes': [],
-                        'arrival': math.inf,
-                        'duration': to_milliseconds(time.monotonic() - start_time)
-                    }
-        elif geometrical_containers:
-            if optimized_binary_search & optimized_binary_search_down:
+        if geometrical_containers:
+            if optimized_binary_search:
                 if not next_index_optimization:
+
                     start_time = time.monotonic()
                     while (winner_node != self.target) and (not exception):
                         exception = _check_running_time(start_time, duration, "FCH")
-                        if not self.candidate_down_move[winner_node]:
-                            departure = bisect_left(nodes_schedule[winner_node], winner_weight)
-                            nodes_indexes = position_in_edge[winner_node].get(departure)
-
-                        else:
-                            departure = bisect_left(nodes_schedule_down[winner_node], winner_weight)
-                            nodes_indexes = position_in_edge_down[winner_node].get(departure)
+                        departure = bisect_left(nodes_schedule[winner_node], winner_weight)
+                        nodes_indexes = position_in_edge[winner_node].get(departure)
                         for node in self.graph.graph[winner_node]:
                             if not self.candidate_down_move[winner_node]:
                                 if self.graph.hierarchy[node] > self.graph.hierarchy[winner_node]:
-                                    self._update_vertex_with_node_index(node, winner_node, winner_weight, False, nodes_indexes)
+                                    self._update_vertex_with_node_index(node, winner_node, winner_weight, False,
+                                                                        nodes_indexes)
                                 elif self.target in self.graph.geometrical_containers[node]:
-                                    self._update_vertex_with_node_index(node, winner_node, winner_weight, True, nodes_indexes)
+                                    self._update_vertex_with_node_index(node, winner_node, winner_weight, True,
+                                                                        nodes_indexes)
                             elif ((self.graph.hierarchy[node] < self.graph.hierarchy[winner_node]) &
                                   (self.target in self.graph.geometrical_containers[node])):
-                                self._update_vertex_with_node_index(node, winner_node, winner_weight, True, nodes_indexes)
+                                self._update_vertex_with_node_index(node, winner_node, winner_weight, True,
+                                                                    nodes_indexes)
 
                         try:
                             winner_node, winner_weight = self.candidate_priorities.popitem()
@@ -116,44 +80,28 @@ class FCH:
                 else:
                     start_time = time.monotonic()
                     while (winner_node != self.target) and (not exception):
-
                         exception = _check_running_time(start_time, duration, "FCH")
-                        schedule = self.candidate_schedule[winner_node]
-                        lower_index = self.lower_index.get(winner_node, 0)
-                        departure = lower_index + bisect_left(schedule, winner_weight)
-                        if not self.candidate_down_move[winner_node]:
-                            nodes_indexes = position_in_edge[winner_node].get(departure)
 
-                        else:
-                            nodes_indexes = position_in_edge_down[winner_node].get(departure)
-
+                        departure = (self.lower_index[winner_node]
+                                     + bisect_left(self.candidate_schedule[winner_node], winner_weight))
+                        nodes_indexes = position_in_edge[winner_node].get(departure)
                         for node in self.graph.graph[winner_node]:
 
                             if not self.candidate_down_move[winner_node]:
                                 if self.graph.hierarchy[node] > self.graph.hierarchy[winner_node]:
                                     self._update_vertex_with_node_index_new(node, winner_node, winner_weight, False,
                                                                             nodes_indexes,
-                                                                            self.graph.nodes_schedule_sliced.get(node, {}).get(departure, []),
-                                                                            self.graph.nodes_schedule_lower_index.get(node, {}).get(departure, 0)
+                                                                            self.graph.nodes_schedule[node]
                                                                             )
                                 elif self.target in self.graph.geometrical_containers[node]:
                                     self._update_vertex_with_node_index_new(node, winner_node, winner_weight, True,
                                                                             nodes_indexes,
-                                                                            self.graph.nodes_schedule_sliced_down.get(node,
-                                                                                                                 {}).get(
-                                                                                departure, []),
-                                                                            self.graph.nodes_schedule_lower_index_down.get(
-                                                                                node, {}).get(departure, 0))
+                                                                            self.graph.nodes_schedule_down[node])
                             elif ((self.graph.hierarchy[node] < self.graph.hierarchy[winner_node]) &
                                   (self.target in self.graph.geometrical_containers[node])):
                                 self._update_vertex_with_node_index_new(node, winner_node, winner_weight, True,
                                                                         nodes_indexes,
-                                                                        self.graph.nodes_schedule_sliced_down.get(node,
-                                                                                                             {}).get(
-                                                                            departure, []),
-                                                                        self.graph.nodes_schedule_lower_index_down.get(node,
-                                                                                                                  {}).get(
-                                                                            departure, 0))
+                                                                        self.graph.nodes_schedule_down[node])
 
                         try:
                             winner_node, winner_weight = self.candidate_priorities.popitem()
@@ -166,35 +114,7 @@ class FCH:
                                 'arrival': math.inf,
                                 'duration': to_milliseconds(time.monotonic() - start_time)
                             }
-            elif optimized_binary_search:
-                start_time = time.monotonic()
-                while (winner_node != self.target) and (not exception):
-                    exception = _check_running_time(start_time, duration, "FCH")
-                    departure = bisect_left(nodes_schedule[winner_node], winner_weight)
-                    nodes_indexes = position_in_edge[winner_node].get(departure)
-                    for node in self.graph.graph[winner_node]:
-                        if not self.candidate_down_move[winner_node]:
-                            if self.graph.hierarchy[node] > self.graph.hierarchy[winner_node]:
-                                self._update_vertex_with_node_index(node, winner_node, winner_weight, False,
-                                                                    nodes_indexes)
-                            elif self.target in self.graph.geometrical_containers[node]:
-                                self._update_vertex_with_node_index(node, winner_node, winner_weight, True,
-                                                                    nodes_indexes)
-                        elif ((self.graph.hierarchy[node] < self.graph.hierarchy[winner_node]) &
-                              (self.target in self.graph.geometrical_containers[node])):
-                            self._update_vertex_with_node_index(node, winner_node, winner_weight, True, nodes_indexes)
 
-                    try:
-                        winner_node, winner_weight = self.candidate_priorities.popitem()
-                    except IndexError:
-                        message = f"Target {self.target} not reachable from node {self.source}"
-                        logging.warning(message)
-                        return {
-                            'path': [],
-                            'routes': [],
-                            'arrival': math.inf,
-                            'duration': to_milliseconds(time.monotonic() - start_time)
-                        }
             else:
                 start_time = time.monotonic()
                 while (winner_node != self.target) and (not exception):
@@ -264,29 +184,6 @@ class FCH:
             'duration': to_milliseconds(time.monotonic() - start_time)
         }
 
-    def _update_vertex_with_mode(self, node, winner_node, winner_weight, down_move: bool, mode: str = 'all'):
-        if mode == 'bus':
-            new_weight, sequence_nodes, route_names = self.graph.graph[winner_node][node].arrival_bus(winner_weight)
-        elif mode == 'walk':
-            new_weight, sequence_nodes, route_names = self.graph.graph[winner_node][node].arrival_walk(winner_weight)
-        else:
-            new_weight, sequence_nodes, route_names = self.graph.graph[winner_node][node].arrival(winner_weight)
-        if node in self.candidate_weights.keys():
-            if new_weight < self.candidate_weights[node]:
-                self.candidate_down_move[node] = down_move
-                self.candidate_weights[node] = new_weight
-                self.candidate_priorities[node] = new_weight
-                self.candidate_sequences[node] = self.candidate_sequences[winner_node] + sequence_nodes[1:]
-                self.candidate_roots[node] = self.candidate_roots[winner_node] + [node]
-                self.candidate_route_names[node] = self.candidate_route_names[winner_node] + route_names
-        elif new_weight != math.inf:
-            self.candidate_down_move[node] = down_move
-            self.candidate_weights[node] = new_weight
-            self.candidate_priorities[node] = new_weight
-            self.candidate_sequences[node] = self.candidate_sequences[winner_node] + sequence_nodes[1:]
-            self.candidate_roots[node] = self.candidate_roots[winner_node] + [node]
-            self.candidate_route_names[node] = self.candidate_route_names[winner_node] + route_names
-
     def _update_vertex(self, node, winner_node, winner_weight, down_move: bool):
 
         new_weight, sequence_nodes, route_names = self.graph.graph[winner_node][node].arrival(winner_weight)
@@ -342,21 +239,26 @@ class FCH:
             self.candidate_route_names[node] = self.candidate_route_names[winner_node] + route_names
 
     def _update_vertex_with_node_index_new(self, node, winner_node, winner_weight, down_move: bool, nodes_indexes,
-                                           schedule, lower_index):
+                                           schedule):
 
         l = walk_time = math.inf
         sequence_nodes = []
         route_names = []
+        lower_index = 0
         f = self.graph.graph[winner_node][node]
         if nodes_indexes:
             start_index = nodes_indexes[node]
             if start_index < f.size:
                 bus = f.buses[start_index]
+                schedule = bus.next_nodes_schedule
+                lower_index = bus.lower_index
                 l = bus.a
                 sequence_nodes = bus.nodes
                 route_names = bus.route_names
+            # elif f.size:
+            #    lower_index = f.buses[-1].lower_index
+            #    schedule = f.buses[-1].next_nodes_schedule
 
-        new_weight, sequence_nodes, route_names = min(walk_time, l), sequence_nodes[1:], route_names
         if f.walk:
             walk_time = winner_weight + f.walk.w
         if walk_time < l:
