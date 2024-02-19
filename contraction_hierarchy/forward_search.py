@@ -12,6 +12,16 @@ from utils import to_milliseconds
 
 class FCH:
     def __init__(self, graph: ContactionTransportGraph, start_time: int, start_node: int, end_node: int):
+        """
+        Forward Search over Contraction Hieararchy
+        More information could bw found by the next link:
+        https://ojs.aaai.org/index.php/SOCS/article/download/18454/18245/21970#:~:text=Contraction%20hierarchies%20are%20graph%2Dbased,on%20bi%2Ddirectional%20Dijkstra%20search.
+
+        :param graph: ContactionTransportGraph Contracted graph on which we run Forward Search
+        :param start_time: int Start time in unix
+        :param start_node: int Start node
+        :param end_node: int End node
+        """
         self.graph = graph
 
         self.source = start_node
@@ -32,8 +42,17 @@ class FCH:
                       duration: Union[float, None] = None,
                       geometrical_containers=True,
                       optimized_binary_search: bool = True,
-                      next_index_optimization=True
+                      next_index_optimization=False # Tested, but not working jet
                       ) -> dict:
+        """
+        Find shortest path query
+
+        :param duration: Maximum allowed duration of process time in seconds
+        :param geometrical_containers:
+        :param optimized_binary_search:
+        :param next_index_optimization:
+        :return:
+        """
 
         exception = None
 
@@ -78,6 +97,7 @@ class FCH:
                             }
 
                 else:
+                    # TODO Work in progress
                     start_time = time.monotonic()
                     while (winner_node != self.target) and (not exception):
                         exception = _check_running_time(start_time, duration, "FCH")
@@ -185,6 +205,14 @@ class FCH:
         }
 
     def _update_vertex(self, node, winner_node, winner_weight, down_move: bool):
+        """
+
+        :param node:
+        :param winner_node:
+        :param winner_weight:
+        :param down_move:
+        :return:
+        """
 
         new_weight, sequence_nodes, route_names = self.graph.graph[winner_node][node].arrival(winner_weight)
         if node in self.candidate_weights.keys():
@@ -204,6 +232,15 @@ class FCH:
             self.candidate_route_names[node] = self.candidate_route_names[winner_node] + route_names
 
     def _update_vertex_with_node_index(self, node, winner_node, winner_weight, down_move: bool, nodes_indexes):
+        """
+
+        :param node:
+        :param winner_node:
+        :param winner_weight:
+        :param down_move:
+        :param nodes_indexes:
+        :return:
+        """
 
         l = walk_time = math.inf
         sequence_nodes = []
@@ -240,7 +277,7 @@ class FCH:
 
     def _update_vertex_with_node_index_new(self, node, winner_node, winner_weight, down_move: bool, nodes_indexes,
                                            schedule):
-
+        # TODO Work in progress
         l = walk_time = math.inf
         sequence_nodes = []
         route_names = []
@@ -255,9 +292,6 @@ class FCH:
                 l = bus.a
                 sequence_nodes = bus.nodes
                 route_names = bus.route_names
-            # elif f.size:
-            #    lower_index = f.buses[-1].lower_index
-            #    schedule = f.buses[-1].next_nodes_schedule
 
         if f.walk:
             walk_time = winner_weight + f.walk.w
@@ -285,27 +319,3 @@ class FCH:
             self.candidate_route_names[node] = self.candidate_route_names[winner_node] + route_names
             self.candidate_schedule[node] = schedule
             self.lower_index[node] = lower_index
-
-    def _update_vertex_with_node_index_test(self, node, winner_node, winner_weight, down_move: bool, nodes_indexes):
-        # todo: work slower then the main method
-        start_index = None
-        if nodes_indexes:
-            start_index = nodes_indexes[node]
-        new_weight, sequence_nodes, route_names = self.graph.graph[winner_node][node].arrival_with_know_index(
-            winner_weight, start_index)
-
-        if node in self.candidate_weights.keys():
-            if new_weight < self.candidate_weights[node]:
-                self.candidate_down_move[node] = down_move
-                self.candidate_weights[node] = new_weight
-                self.candidate_priorities[node] = new_weight
-                self.candidate_sequences[node] = self.candidate_sequences[winner_node] + sequence_nodes[1:]
-                self.candidate_roots[node] = self.candidate_roots[winner_node] + [node]
-                self.candidate_route_names[node] = self.candidate_route_names[winner_node] + route_names
-        elif new_weight != math.inf:
-            self.candidate_down_move[node] = down_move
-            self.candidate_weights[node] = new_weight
-            self.candidate_priorities[node] = new_weight
-            self.candidate_roots[node] = self.candidate_roots[winner_node] + [node]
-            self.candidate_sequences[node] = self.candidate_sequences[winner_node] + sequence_nodes[1:]
-            self.candidate_route_names[node] = self.candidate_route_names[winner_node] + route_names

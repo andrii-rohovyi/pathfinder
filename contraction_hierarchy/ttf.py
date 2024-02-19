@@ -10,6 +10,16 @@ from atf import ATF
 class Transportation:
 
     def __init__(self, nodes: List[int], route_names: List[str], k: int, b: int, d: int):
+        """
+        Class responsible to different ways of transportation from node1 to node2
+
+        :param nodes: [start_node, end_node] of transportation
+        :param route_names: Names of sequence of public transport or "walk" in case of walking, which we need to use
+                            for transferring from start_node to end_node
+        :param k: tg of the angle of the sector
+        :param b:
+        :param d: Departure time of the sector
+        """
         self.nodes = nodes
         self.k = k
         self.b = b
@@ -17,6 +27,12 @@ class Transportation:
         self.route_names = route_names
 
     def travel_time(self, t: int):
+        """
+        Calculation of the travel time in seconds needed to move from start_node to end_node
+        Global formula looks in the next way: travel_time = k * start_time + b
+        :param t: start_time of the function activation
+        :return:
+        """
         return self.k * t + self.b
 
     def __lt__(self, other):
@@ -85,15 +101,21 @@ class TTF:
 
     def __init__(self, atf: ATF = None):
         """
-
-        :param w:
-        :param c: List[Tuple[int, int]]) , List of tuples with [departure, arrival time]
+        Travel Time Function profile. Init converts ATF to TTF
+        :param atf: ATF : ATF which we would like to convert into TTF
         """
 
         self.transports = populate_transports(atf.buses, atf.walk)
         self.size = len(self.transports)
 
     def arrival(self, t: int):
+        """
+        Calculate arrival time
+
+        :param t: start time in unix-time
+        :return: arrival time in unix-time
+        """
+
         start_index = bisect_left(self.transports, t, key=lambda x: x.d, lo=0, hi=self.size)
         l = t + self.transports[start_index].travel_time(t)
         sequence_nodes = self.transports[start_index].nodes

@@ -10,9 +10,11 @@ class ATF:
 
     def __init__(self, walk: Walk = None, buses: List[Bus] = None):
         """
-
-        :param w:
-        :param c: List[Tuple[int, int]]) , List of tuples with [departure, arrival time]
+        Arrival Time Function.
+        More detailed you can find
+         by link: https://oliviermarty.net/docs/olivier_marty_contraction_hierarchies_rapport.pdf
+        :param walk: Walk profile between nodes
+        :param buses: List[Bus] , List of Buses between 2 nodes
         """
 
         self.walk = walk
@@ -20,6 +22,12 @@ class ATF:
         self.size = len(buses)
 
     def cut(self):
+        """
+        Method for filtering dominated connections in ATF
+        More detailed this procedure described by the link
+         by link: https://oliviermarty.net/docs/olivier_marty_contraction_hierarchies_rapport.pdf
+        :return:
+        """
         r = list()
         i = 0
         while i < self.size:
@@ -46,6 +54,11 @@ class ATF:
         self.size = len(r)
 
     def composition(self, f):
+        """
+        Composition of 2 ATF's functions
+        :param f: ATF
+        :return: self(f)
+        """
         cc, cw, wc = [], [], []
 
         walk = None
@@ -130,6 +143,13 @@ class ATF:
             return g
 
     def composition_buses(self, f):
+        """
+        Composition of busses in 2 ATF's
+        Description could be found by link :
+        https://oliviermarty.net/docs/olivier_marty_contraction_hierarchies_rapport.pdf
+        :param f:
+        :return:
+        """
         c = []
         walk = None
         if self.walk and f.walk:
@@ -169,6 +189,11 @@ class ATF:
         return l, sequence_nodes, route_names
 
     def arrival(self, t: int):
+        """
+        Calculate arrival time to next station
+        :param t: start_time
+        :return:
+        """
         l = math.inf
         sequence_nodes = []
         route_names = []
@@ -183,17 +208,6 @@ class ATF:
                 return walk_time, self.walk.nodes, self.walk.route_names
         return l, sequence_nodes, route_names
 
-    '''
-    def arrival(self, t: int):
-
-        start_index = bisect_left(self.buses, t, key=lambda x: x.d, lo=0, hi=self.size)
-        time_bus, sequence_nodes_bus, route_names_bus = self.arrival_by_bus_index(start_index)
-        time_walk, sequence_nodes_walk, route_names_walk = self.arrival_walk(t)
-
-        if time_walk < time_bus:
-            return time_walk, sequence_nodes_walk, route_names_walk
-        return time_bus, sequence_nodes_bus, route_names_bus
-   '''
     def arrival_with_know_index(self, t: int, start_index):
 
         time_walk, sequence_nodes_walk, route_names_walk = self.arrival_walk(t)
@@ -204,19 +218,28 @@ class ATF:
         return time_walk, sequence_nodes_walk, route_names_walk
 
     def arrival_walk(self, t: int):
+        """Arrival just by walk profile"""
         if self.walk:
             walk_time = t + self.walk.w
             return walk_time, self.walk.nodes, self.walk.route_names
         return math.inf, [], []
 
     def arrival_bus(self, t: int):
-
+        """Arrival just by bus profile"""
         start_index = bisect_left(self.buses, t, key=lambda x: x.d, lo=0, hi=self.size)
 
         return self.arrival_by_bus_index(start_index)
 
 
 def min_atf(f1: ATF, f2: ATF):
+    """
+    Minimum of 2 ATF function.
+    Description could be found by link :
+    https://oliviermarty.net/docs/olivier_marty_contraction_hierarchies_rapport.pdf
+    :param f1:
+    :param f2:
+    :return:
+    """
     if f1.walk and f2.walk:
         if f1.walk.w > f2.walk.w:
             walk = f2.walk

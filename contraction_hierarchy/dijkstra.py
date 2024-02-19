@@ -97,6 +97,15 @@ class Dijkstra:
         }
 
     def _update_vertex(self, node, winner_node, winner_weight, f):
+        """
+        Update vertex.
+
+        :param node:
+        :param winner_node:
+        :param winner_weight:
+        :param f:
+        :return:
+        """
         new_weight, sequence_nodes, route_names = f.arrival(winner_weight)
         if node in self.candidate_weights.keys():
             if new_weight < self.candidate_weights[node]:
@@ -113,6 +122,14 @@ class Dijkstra:
             self.candidate_route_names[node] = self.candidate_route_names[winner_node] + route_names
 
     def _update_vertex_with_node_index(self, node, winner_node, winner_weight, nodes_indexes):
+        """
+        Update vertex after TTN
+        :param node:
+        :param winner_node:
+        :param winner_weight:
+        :param nodes_indexes:
+        :return:
+        """
         l = walk_time = math.inf
         sequence_nodes = []
         route_names = []
@@ -144,23 +161,3 @@ class Dijkstra:
             self.candidate_roots[node] = self.candidate_roots[winner_node] + [node]
             self.candidate_route_names[node] = self.candidate_route_names[winner_node] + route_names
 
-    def _update_vertex_with_node_index_test(self, node, winner_node, winner_weight, nodes_indexes):
-        start_index = None
-        if nodes_indexes:
-            start_index = nodes_indexes[node]
-        new_weight, sequence_nodes, route_names = self.graph.graph[winner_node][node].arrival_with_know_index(
-            winner_weight, start_index)
-
-        if node in self.candidate_weights.keys():
-            if new_weight < self.candidate_weights[node]:
-                self.candidate_weights[node] = new_weight
-                self.candidate_priorities[node] = new_weight
-                self.candidate_sequences[node] = self.candidate_sequences[winner_node] + sequence_nodes[1:]
-                self.candidate_roots[node] = self.candidate_roots[winner_node] + [node]
-                self.candidate_route_names[node] = self.candidate_route_names[winner_node] + route_names
-        elif new_weight != math.inf:
-            self.candidate_weights[node] = new_weight
-            self.candidate_priorities[node] = new_weight
-            self.candidate_sequences[node] = self.candidate_sequences[winner_node] + sequence_nodes[1:]
-            self.candidate_roots[node] = self.candidate_roots[winner_node] + [node]
-            self.candidate_route_names[node] = self.candidate_route_names[winner_node] + route_names
