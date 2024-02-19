@@ -59,7 +59,7 @@ class TransportGraph:
             self.nodes.add(node)
 
     @property
-    def edges_cnt(self):
+    def edges_cnt(self) -> int:
         """
         Calculate count of edges in graph for the statistics
         :return:
@@ -70,7 +70,7 @@ class TransportGraph:
         return edges_sum
 
     @property
-    def nodes_cnt(self):
+    def nodes_cnt(self) -> int:
         """
         Calculate count of nodes for the statistics
         :return:
@@ -78,7 +78,7 @@ class TransportGraph:
         return len(self.nodes)
 
     @property
-    def timetable_stats(self):
+    def timetable_stats(self) -> Dict[str, float]:
         """
         Calculation of statistics about complexity of edge functions inside the graph.
         Min, Mean, Standard deviation, Max of the sizes of the function over the graph
@@ -97,7 +97,13 @@ class TransportGraph:
                 'std_size': timetables.std(),
                 'max_size': timetables.max()}
 
-    def edge_difference(self, node):
+    def edge_difference(self, node: int) -> int:
+        """
+        Calculate edges difference for node.
+        Idea of edge difference could be read here: https://oliviermarty.net/docs/olivier_marty_contraction_hierarchies_rapport.pdf
+        :param node: Node for each we want to calculate edge_difference
+        :return:
+        """
         out_nodes_cnt = len(self.graph[node])
         in_nodes_cnt = len(self.in_nodes[node])
 

@@ -144,7 +144,7 @@ class ATF:
 
     def composition_buses(self, f):
         """
-        Composition of busses in 2 ATF's
+        Composition of busses and walk connections separately in 2 ATF's
         Description could be found by link :
         https://oliviermarty.net/docs/olivier_marty_contraction_hierarchies_rapport.pdf
         :param f:
