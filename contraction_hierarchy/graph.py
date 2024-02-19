@@ -7,6 +7,7 @@ import heapdict
 from bisect import bisect_left
 
 from atf import ATF, min_atf
+from ttf import TTF
 from trip import Bus, Walk
 
 
@@ -15,6 +16,11 @@ class TransportGraph:
     def __init__(self,
                  transport_connections: pd.DataFrame,
                  walk_connections: pd.DataFrame):
+        """
+        Class, which represent Multimodal Transport Network
+        :param transport_connections: pd.DataFrame
+        :param walk_connections:
+        """
 
         transport_connections_df = transport_connections.copy(deep=True)
         transport_connections_df = transport_connections_df.sort_values(by='dep_time_ut')
@@ -66,7 +72,10 @@ class TransportGraph:
         timetables = []
         for i, v in self.graph.items():
             for i0, v0 in v.items():
-                timetables += [len(v0.buses)]
+                if type(v0) is ATF:
+                    timetables += [len(v0.buses)]
+                elif type(v0) is TTF:
+                    timetables += [len(v0.transports)]
         timetables = np.array(timetables)
         return {'min_size': timetables.min(),
                 'mean_size': timetables.mean(),
@@ -170,19 +179,33 @@ class ContactionTransportGraph(TransportGraph):
             self.contraction_priority[x] = self.edge_difference(x) + self.depth[x]
 
     def geometrical_container(self):
+        """
+        Precalculate Geometrical Containers for all nodes in down-mode move. Needed for Forward Search algorithm
+        :return:
+        """
         for node in tqdm(self.nodes):
             visited = set()
-            self.dfs(visited, node)
+            self._dfs(visited, node)
             self.geometrical_containers[node] = visited
 
-    def dfs(self, visited, node):
+    def _dfs(self, visited, node: int):
+        """
+        Deep first search for building an Geometrical containers for each node in down movement
+        :param visited: Set of already visited nodes
+        :param node: Node for which we run DFS
+        :return:
+        """
         if node not in visited:
             visited.add(node)
             for neighbour in self.graph[node]:
                 if self.hierarchy[neighbour] < self.hierarchy[node]:
-                    self.dfs(visited, neighbour)
+                    self._dfs(visited, neighbour)
 
     def optimize_binary_search(self):
+        """
+        TTN algorithm realization
+        :return:
+        """
         for node1, out in tqdm(self.graph.items()):
             self.position_in_edge[node1] = {}
             full_list = []
