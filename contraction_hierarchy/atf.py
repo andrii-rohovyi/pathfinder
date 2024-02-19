@@ -142,53 +142,6 @@ class ATF:
             g.cut()
             return g
 
-    def composition_buses(self, f):
-        """
-        Composition of busses in 2 ATF's
-        Description could be found by link :
-        https://oliviermarty.net/docs/olivier_marty_contraction_hierarchies_rapport.pdf
-        :param f:
-        :return:
-        """
-        c = []
-        walk = None
-        if self.walk and f.walk:
-            w = self.walk.w + f.walk.w
-            w_nodes = f.walk.nodes + self.walk.nodes[1:]
-            walk = Walk(nodes=w_nodes, w=w)
-
-        i = 0
-        j = 0
-        while i < f.size and j < self.size:
-            if i + 1 < f.size and f.buses[i + 1].a <= self.buses[j].d:
-                i += 1
-            elif f.buses[i].a <= self.buses[j].d:
-                if (not walk) or (walk and (self.buses[j].a - f.buses[i].d <= w)):
-                    cc_c = (f.buses[i].d, self.buses[j].a)
-                    cc_nodes = f.buses[i].nodes + self.buses[j].nodes[1:]
-                    cc_route_names = f.buses[i].route_names + self.buses[j].route_names
-                    bus = Bus(nodes=cc_nodes, c=cc_c, route_names=cc_route_names)
-                    c.append(bus)
-                j += 1
-                i += 1
-            else:
-                j += 1
-
-        if walk or c:
-            g = ATF(walk=walk, buses=c)
-            return g
-
-    def arrival_by_bus_index(self, start_index):
-        # TODO: Work in progress
-        l = math.inf
-        sequence_nodes = []
-        route_names = []
-        if start_index < self.size:
-            l = self.buses[start_index].a
-            sequence_nodes = self.buses[start_index].nodes
-            route_names = self.buses[start_index].route_names
-        return l, sequence_nodes, route_names
-
     def arrival(self, t: int) -> Tuple[int, List[int], List[str]]:
         """
         Calculate arrival time to next station
@@ -208,28 +161,6 @@ class ATF:
             if walk_time < l:
                 return walk_time, self.walk.nodes, self.walk.route_names
         return l, sequence_nodes, route_names
-
-    def arrival_with_know_index(self, t: int, start_index):
-        # TODO: Work in progress
-        time_walk, sequence_nodes_walk, route_names_walk = self.arrival_walk(t)
-        if start_index is not None:
-            time_bus, sequence_nodes_bus, route_names_bus = self.arrival_by_bus_index(start_index)
-            if time_walk > time_bus:
-                return time_bus, sequence_nodes_bus, route_names_bus
-        return time_walk, sequence_nodes_walk, route_names_walk
-
-    def arrival_walk(self, t: int):
-        """Arrival just by walk profile"""
-        if self.walk:
-            walk_time = t + self.walk.w
-            return walk_time, self.walk.nodes, self.walk.route_names
-        return math.inf, [], []
-
-    def arrival_bus(self, t: int):
-        """Arrival just by bus profile"""
-        start_index = bisect_left(self.buses, t, key=lambda x: x.d, lo=0, hi=self.size)
-
-        return self.arrival_by_bus_index(start_index)
 
 
 def min_atf(f1: ATF, f2: ATF) -> ATF:
