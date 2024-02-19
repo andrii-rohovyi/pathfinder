@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Union, Dict, List
 import heapdict
 import time
 import math
@@ -18,7 +18,7 @@ class FCH:
         https://ojs.aaai.org/index.php/SOCS/article/download/18454/18245/21970#:~:text=Contraction%20hierarchies%20are%20graph%2Dbased,on%20bi%2Ddirectional%20Dijkstra%20search.
 
         :param graph: ContactionTransportGraph Contracted graph on which we run Forward Search
-        :param start_time: int Start time in unix
+        :param start_time: int Start time in unix time
         :param start_node: int Start node
         :param end_node: int End node
         """
@@ -42,15 +42,15 @@ class FCH:
                       duration: Union[float, None] = None,
                       geometrical_containers=True,
                       optimized_binary_search: bool = True,
-                      next_index_optimization=False # Tested, but not working jet
-                      ) -> dict:
+                      next_index_optimization=False  # Tested, but not working jet
+                      ) -> Dict[str, Union[List[Union[int, str]], int]]:
         """
         Find shortest path query
 
         :param duration: Maximum allowed duration of process time in seconds
-        :param geometrical_containers:
-        :param optimized_binary_search:
-        :param next_index_optimization:
+        :param geometrical_containers: bool Boolean switcher for Geometrical containers in FS
+        :param optimized_binary_search: bool Boolean switcher for TTN mode
+        :param next_index_optimization: bool Work in progress.
         :return:
         """
 
@@ -204,13 +204,15 @@ class FCH:
             'duration': to_milliseconds(time.monotonic() - start_time)
         }
 
-    def _update_vertex(self, node, winner_node, winner_weight, down_move: bool):
+    def _update_vertex(self, node: int, winner_node: int, winner_weight: int,
+                       down_move: bool):
         """
+        Update vertex iteration in Forward Search
 
-        :param node:
-        :param winner_node:
-        :param winner_weight:
-        :param down_move:
+        :param node: int Node information about which we update
+        :param winner_node: int. Parent node from each we reach this node
+        :param winner_weight: Time in unix at which we have been at winner_node
+        :param down_move: bool True in case of movement down
         :return:
         """
 
@@ -233,12 +235,12 @@ class FCH:
 
     def _update_vertex_with_node_index(self, node, winner_node, winner_weight, down_move: bool, nodes_indexes):
         """
+        Update vertex iteration in Forward Search
 
-        :param node:
-        :param winner_node:
-        :param winner_weight:
-        :param down_move:
-        :param nodes_indexes:
+        :param node: int Node information about which we update
+        :param winner_node: int. Parent node from each we reach this node
+        :param winner_weight: Time in unix at which we have been at winner_node
+        :param down_move: bool True in case of movement down
         :return:
         """
 

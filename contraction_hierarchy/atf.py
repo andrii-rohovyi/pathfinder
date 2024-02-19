@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Tuple
 import math
 from bisect import bisect_left
 
@@ -56,7 +56,7 @@ class ATF:
     def composition(self, f):
         """
         Composition of 2 ATF's functions
-        :param f: ATF
+        :param f: ATF function
         :return: self(f)
         """
         cc, cw, wc = [], [], []
@@ -179,6 +179,7 @@ class ATF:
             return g
 
     def arrival_by_bus_index(self, start_index):
+        # TODO: Work in progress
         l = math.inf
         sequence_nodes = []
         route_names = []
@@ -188,7 +189,7 @@ class ATF:
             route_names = self.buses[start_index].route_names
         return l, sequence_nodes, route_names
 
-    def arrival(self, t: int):
+    def arrival(self, t: int) -> Tuple[int, List[int], List[str]]:
         """
         Calculate arrival time to next station
         :param t: start_time
@@ -209,7 +210,7 @@ class ATF:
         return l, sequence_nodes, route_names
 
     def arrival_with_know_index(self, t: int, start_index):
-
+        # TODO: Work in progress
         time_walk, sequence_nodes_walk, route_names_walk = self.arrival_walk(t)
         if start_index is not None:
             time_bus, sequence_nodes_bus, route_names_bus = self.arrival_by_bus_index(start_index)
@@ -231,7 +232,7 @@ class ATF:
         return self.arrival_by_bus_index(start_index)
 
 
-def min_atf(f1: ATF, f2: ATF):
+def min_atf(f1: ATF, f2: ATF) -> ATF:
     """
     Minimum of 2 ATF function.
     Description could be found by link :

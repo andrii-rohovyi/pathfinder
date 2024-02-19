@@ -12,13 +12,15 @@ class Transportation:
     def __init__(self, nodes: List[int], route_names: List[str], k: int, b: int, d: int):
         """
         Class responsible to different ways of transportation from node1 to node2
+        Global formula looks in the next way:
+                        travel_time = k * start_time + b
 
         :param nodes: [start_node, end_node] of transportation
         :param route_names: Names of sequence of public transport or "walk" in case of walking, which we need to use
                             for transferring from start_node to end_node
-        :param k: tg of the angle of the sector
-        :param b:
-        :param d: Departure time of the sector
+        :param k: k in formula for calculation travel_time
+        :param b: b in formula for calculation travel_time
+        :param d: Departure time of the sector for which we use calculation formula
         """
         self.nodes = nodes
         self.k = k
@@ -26,7 +28,7 @@ class Transportation:
         self.d = d
         self.route_names = route_names
 
-    def travel_time(self, t: int):
+    def travel_time(self, t: int) -> int:
         """
         Calculation of the travel time in seconds needed to move from start_node to end_node
         Global formula looks in the next way: travel_time = k * start_time + b
@@ -35,10 +37,10 @@ class Transportation:
         """
         return self.k * t + self.b
 
-    def __lt__(self, other):
+    def __lt__(self, other) -> bool:
         return self.d < other.d
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         return self.d == other.d
 
 

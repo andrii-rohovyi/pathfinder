@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Union, Dict, List
 import heapdict
 import time
 import math
@@ -8,10 +8,21 @@ from bisect import bisect_left
 from graph import TransportGraph
 from algorithms_wrapper import _check_running_time
 from utils import to_milliseconds
+from ttf import TTF
+from atf import ATF
 
 
 class Dijkstra:
     def __init__(self, graph: TransportGraph, start_time: int, start_node: int, end_node: int):
+        """
+        Realization of Dijkstra algorithm
+        https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm
+
+        :param graph: TransportGraph Multimodal transport network
+        :param start_time: int Start time in unix
+        :param start_node: int Start node from, which we build a path
+        :param end_node: int Target node
+        """
         self.graph = graph
 
         self.source = start_node
@@ -27,7 +38,7 @@ class Dijkstra:
     def shortest_path(self,
                       duration: Union[float, None] = None,
                       optimized_binary_search: bool = True
-                      ) -> dict:
+                      ) -> Dict[str, Union[List[Union[int, str]], int]]:
 
         exception = None
 
@@ -96,14 +107,14 @@ class Dijkstra:
             'duration': to_milliseconds(time.monotonic() - start_time)
         }
 
-    def _update_vertex(self, node, winner_node, winner_weight, f):
+    def _update_vertex(self, node: int, winner_node: int, winner_weight: int, f: Union[ATF, TTF]):
         """
-        Update vertex.
+        Update vertex iteration in Dijkstra
 
-        :param node:
-        :param winner_node:
-        :param winner_weight:
-        :param f:
+        :param node: int Node information about which we update
+        :param winner_node: int. Parent node from each we reach this node
+        :param winner_weight: Time in unix at which we have been at winner_node
+        :param f: Union[ATF, TTF] Function, which represent movement from winner_node to node
         :return:
         """
         new_weight, sequence_nodes, route_names = f.arrival(winner_weight)
@@ -121,13 +132,16 @@ class Dijkstra:
             self.candidate_roots[node] = self.candidate_roots[winner_node] + [node]
             self.candidate_route_names[node] = self.candidate_route_names[winner_node] + route_names
 
-    def _update_vertex_with_node_index(self, node, winner_node, winner_weight, nodes_indexes):
+    def _update_vertex_with_node_index(self, node: int, winner_node: int, winner_weight: int,
+                                       nodes_indexes: Dict[int, int]):
         """
-        Update vertex after TTN
-        :param node:
-        :param winner_node:
-        :param winner_weight:
-        :param nodes_indexes:
+        Update vertex in TTN mode
+
+        :param node: int Node information about which we update
+        :param winner_node: int. Parent node from each we reach this node
+        :param winner_weight: Time in unix at which we have been at winner_node
+        :param nodes_indexes: Dict[int, int] Dictionaries, where key values are nodes
+                            and values is index in ATF Bus profile
         :return:
         """
         l = walk_time = math.inf
@@ -160,4 +174,3 @@ class Dijkstra:
             self.candidate_sequences[node] = self.candidate_sequences[winner_node] + sequence_nodes[1:]
             self.candidate_roots[node] = self.candidate_roots[winner_node] + [node]
             self.candidate_route_names[node] = self.candidate_route_names[winner_node] + route_names
-
