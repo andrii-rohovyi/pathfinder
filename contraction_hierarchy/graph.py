@@ -5,6 +5,7 @@ from collections import defaultdict
 from tqdm import tqdm
 import heapdict
 from bisect import bisect_left
+from typing import Set, Dict
 
 from atf import ATF, min_atf
 from ttf import TTF
@@ -17,9 +18,10 @@ class TransportGraph:
                  transport_connections: pd.DataFrame,
                  walk_connections: pd.DataFrame):
         """
-        Class, which represent Multimodal Transport Network
-        :param transport_connections: pd.DataFrame
-        :param walk_connections:
+        Class, which represent Multimodal Transport Network.
+        It is __init__ by 2 data frames about transport and walk information over the city
+        :param transport_connections: pd.DataFrame. File format related to network_temporal_day.csv by link: https://zenodo.org/records/1136378
+        :param walk_connections: File format related to network_walk.csv by link: https://zenodo.org/records/1136378
         """
 
         transport_connections_df = transport_connections.copy(deep=True)
@@ -58,6 +60,10 @@ class TransportGraph:
 
     @property
     def edges_cnt(self):
+        """
+        Calculate count of edges in graph for the statistics
+        :return:
+        """
         edges_sum = 0
         for i, v in self.graph.items():
             edges_sum += len(v)
@@ -65,10 +71,19 @@ class TransportGraph:
 
     @property
     def nodes_cnt(self):
+        """
+        Calculate count of nodes for the statistics
+        :return:
+        """
         return len(self.nodes)
 
     @property
     def timetable_stats(self):
+        """
+        Calculation of statistics about complexity of edge functions inside the graph.
+        Min, Mean, Standard deviation, Max of the sizes of the function over the graph
+        :return:
+        """
         timetables = []
         for i, v in self.graph.items():
             for i0, v0 in v.items():
@@ -97,7 +112,11 @@ class TransportGraph:
 
         return shortcuts_inserted - edges_removed
 
-    def contraction_hierarchy(self, just_buses=True):
+    def contraction_hierarchy(self):
+        """
+        Contraction Hierarchy algorithm.
+        :return:
+        """
         new_graph = ContactionTransportGraph(self.graph, self.in_nodes, self.nodes)
         in_nodes = deepcopy(self.in_nodes)
         graph = deepcopy(self.graph)
@@ -112,10 +131,7 @@ class TransportGraph:
                         if previous_node != next_node:
                             # calculate new connection function
 
-                            if just_buses:
-                                new_f = g.composition_buses(f)
-                            else:
-                                new_f = g.composition(f)
+                            new_f = g.composition(f)
                             if new_f:
                                 h = graph[previous_node].get(next_node, None)
                                 if h:
@@ -148,6 +164,10 @@ class TransportGraph:
         return new_graph
 
     def optimize_binary_search(self):
+        """
+        TTN algorithm over the standard graph
+        :return:
+        """
         for node1, out in tqdm(self.graph.items()):
             self.position_in_edge[node1] = {}
             full_list = []
@@ -165,7 +185,14 @@ class TransportGraph:
 
 class ContactionTransportGraph(TransportGraph):
 
-    def __init__(self, graph, in_nodes, nodes):
+    def __init__(self, graph: Dict[int, Dict[int, ATF]], in_nodes: Dict[int, Dict[int, ATF]], nodes: Set[int]):
+        """
+        CH-graph class
+
+        :param graph:  Dict[int, Dict[int, ATF]] Dictionary of out-going edges contains ATF functions between 2 nodes
+        :param in_nodes: Dict[int, Dict[int, ATF]] Dictionary of in-going edges contains ATF functions between 2 nodes
+        :param nodes: Set of all nodes
+        """
         self.graph = deepcopy(graph)
         self.in_nodes = deepcopy(in_nodes)
         self.nodes = deepcopy(nodes)
@@ -188,11 +215,11 @@ class ContactionTransportGraph(TransportGraph):
             self._dfs(visited, node)
             self.geometrical_containers[node] = visited
 
-    def _dfs(self, visited, node: int):
+    def _dfs(self, visited: Set[int], node: int):
         """
         Deep first search for building an Geometrical containers for each node in down movement
-        :param visited: Set of already visited nodes
-        :param node: Node for which we run DFS
+        :param visited: Set[int] Set of already visited nodes
+        :param node: int Node for which we run DFS
         :return:
         """
         if node not in visited:
