@@ -42,7 +42,8 @@ class FCH:
                       duration: Union[float, None] = None,
                       geometrical_containers=True,
                       optimized_binary_search: bool = True,
-                      next_index_optimization=False  # Tested, but not working jet
+                      next_index_optimization=False,  # Tested, but not working jet
+                      fractional_cascading=False
                       ) -> Dict[str, Union[List[Union[int, str]], int]]:
         """
         Find shortest path query
@@ -64,7 +65,39 @@ class FCH:
 
         if geometrical_containers:
             if optimized_binary_search:
-                if not next_index_optimization:
+                if fractional_cascading:
+                    start_time = time.monotonic()
+                    while (winner_node != self.target) and (not exception):
+                        exception = _check_running_time(start_time, duration, "FCH")
+                        nodes_indexes = self.graph.get_positions_fractional_cascading(winner_weight, winner_node)
+                        for node in self.graph.graph[winner_node]:
+                            if not self.candidate_down_move[winner_node]:
+                                if self.graph.hierarchy[node] > self.graph.hierarchy[winner_node]:
+                                    self._update_vertex_with_node_index_fractional_cascading(node, winner_node,
+                                                                                             winner_weight, False,
+                                                                                             nodes_indexes)
+                                elif self.target in self.graph.geometrical_containers[node]:
+                                    self._update_vertex_with_node_index_fractional_cascading(node, winner_node,
+                                                                                             winner_weight, True,
+                                                                                             nodes_indexes)
+                            elif ((self.graph.hierarchy[node] < self.graph.hierarchy[winner_node]) &
+                                  (self.target in self.graph.geometrical_containers[node])):
+                                self._update_vertex_with_node_index_fractional_cascading(node, winner_node,
+                                                                                         winner_weight, True,
+                                                                                         nodes_indexes)
+
+                        try:
+                            winner_node, winner_weight = self.candidate_priorities.popitem()
+                        except IndexError:
+                            message = f"Target {self.target} not reachable from node {self.source}"
+                            logging.warning(message)
+                            return {
+                                'path': [],
+                                'routes': [],
+                                'arrival': math.inf,
+                                'duration': to_milliseconds(time.monotonic() - start_time)
+                            }
+                elif not next_index_optimization:
 
                     start_time = time.monotonic()
                     while (winner_node != self.target) and (not exception):
@@ -254,6 +287,51 @@ class FCH:
                 l = f.buses[start_index].a
                 sequence_nodes = f.buses[start_index].nodes
                 route_names = f.buses[start_index].route_names
+        if f.walk:
+            walk_time = winner_weight + f.walk.w
+        if walk_time < l:
+            new_weight, sequence_nodes, route_names = walk_time, f.walk.nodes, f.walk.route_names
+        else:
+            new_weight, sequence_nodes, route_names = l, sequence_nodes, route_names
+
+        if node in self.candidate_weights.keys():
+            if new_weight < self.candidate_weights[node]:
+                self.candidate_down_move[node] = down_move
+                self.candidate_weights[node] = new_weight
+                self.candidate_priorities[node] = new_weight
+                self.candidate_sequences[node] = self.candidate_sequences[winner_node] + sequence_nodes[1:]
+                self.candidate_roots[node] = self.candidate_roots[winner_node] + [node]
+                self.candidate_route_names[node] = self.candidate_route_names[winner_node] + route_names
+        elif new_weight != math.inf:
+            self.candidate_down_move[node] = down_move
+            self.candidate_weights[node] = new_weight
+            self.candidate_priorities[node] = new_weight
+            self.candidate_roots[node] = self.candidate_roots[winner_node] + [node]
+            self.candidate_sequences[node] = self.candidate_sequences[winner_node] + sequence_nodes[1:]
+            self.candidate_route_names[node] = self.candidate_route_names[winner_node] + route_names
+
+    def _update_vertex_with_node_index_fractional_cascading(self, node, winner_node, winner_weight, down_move: bool, nodes_indexes):
+        """
+        Update vertex iteration in Forward Search
+
+        :param node: int Node information about which we update
+        :param winner_node: int. Parent node from each we reach this node
+        :param winner_weight: Time in unix at which we have been at winner_node
+        :param down_move: bool True in case of movement down
+        :return:
+        """
+
+        l = walk_time = math.inf
+        sequence_nodes = []
+        route_names = []
+        f = self.graph.graph[winner_node][node]
+        if nodes_indexes:
+            start_index = nodes_indexes.get(node)
+            if start_index is not None:
+                if start_index < f.size:
+                    l = f.buses[start_index].a
+                    sequence_nodes = f.buses[start_index].nodes
+                    route_names = f.buses[start_index].route_names
         if f.walk:
             walk_time = winner_weight + f.walk.w
         if walk_time < l:
