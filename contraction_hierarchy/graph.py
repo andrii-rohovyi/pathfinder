@@ -5,7 +5,8 @@ from collections import defaultdict
 from tqdm import tqdm
 import heapdict
 from copy import copy
-from bisect import bisect_left
+# from bisect import bisect_left
+from binary_search import bisect_left
 from typing import Set, Dict
 
 from atf import ATF, min_atf
@@ -62,6 +63,7 @@ class TransportGraph:
         self.m_arr_fractional = {}
         self.pointers = {}
         self.reachable_nodes = {}
+        self.walking_nodes = {}
 
     @property
     def edges_cnt(self) -> int:
@@ -198,6 +200,7 @@ class TransportGraph:
             m_arr = []
             arr = []
             reachable_nodes = []
+            walking_nodes = []
             i = 0
 
             for node2, f in sorted(out.items(), key=lambda x: len(x[1].buses)):
@@ -209,6 +212,8 @@ class TransportGraph:
                         m_arr.append(copy(full_list))
                         reachable_nodes.append(node2)
                         i += 1
+                    else:
+                        walking_nodes.append(node2)
                 else:
                     full_list = [bus.d for bus in f.buses]
                     if full_list:
@@ -220,6 +225,8 @@ class TransportGraph:
                         m_arr.append(copy(full_list))
                         reachable_nodes.append(node2)
                         i += 1
+                    else:
+                        walking_nodes.append(node2)
             m_arr = m_arr[::-1]
             arr = arr[::-1]
             reachable_nodes = reachable_nodes[::-1]
@@ -237,6 +244,7 @@ class TransportGraph:
                     ]
             self.m_arr_fractional[node1] = m_arr
             self.reachable_nodes[node1] = reachable_nodes
+            self.walking_nodes[node1] = walking_nodes
 
     def get_positions_fractional_cascading(self, x, node):
         locations = {}
@@ -276,6 +284,7 @@ class ContactionTransportGraph(TransportGraph):
         self.m_arr_fractional = {}
         self.pointers = {}
         self.reachable_nodes = {}
+        self.walking_nodes = {}
         for x in nodes:
             self.contraction_priority[x] = self.edge_difference(x) + self.depth[x]
 
