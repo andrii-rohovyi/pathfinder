@@ -44,7 +44,8 @@ class FCH:
                       geometrical_containers=True,
                       optimized_binary_search: bool = True,
                       next_index_optimization=False,  # Tested, but not working jet
-                      fractional_cascading=False
+                      fractional_cascading=False,
+                      fractional_cascading_old=False
                       ) -> Dict[str, Union[List[Union[int, str]], int]]:
         """
         Find shortest path query
@@ -66,14 +67,15 @@ class FCH:
 
         if geometrical_containers:
             if optimized_binary_search:
-                if fractional_cascading:
+                if fractional_cascading_old:
+
                     start_time = time.monotonic()
                     while (winner_node != self.target) and (not exception):
                         exception = _check_running_time(start_time, duration, "FCH")
 
-                        m_arr = self.graph.m_arr_fractional.get(winner_node)
-                        pointers = self.graph.pointers.get(winner_node)
-                        reachable_nodes = self.graph.reachable_nodes.get(winner_node)
+                        m_arr = self.graph.m_arr_fractional_old.get(winner_node)
+                        pointers = self.graph.pointers_old.get(winner_node)
+                        reachable_nodes = self.graph.reachable_nodes_old.get(winner_node)
                         out = self.graph.graph.get(winner_node)
                         down_move = self.candidate_down_move[winner_node]
                         if pointers:
@@ -82,17 +84,19 @@ class FCH:
                             node = reachable_nodes[0]
                             if not down_move:
                                 if self.graph.hierarchy[node] > self.graph.hierarchy[winner_node]:
-                                    self._update_vertex_with_node_index_fractional_cascading_bus_profile(winner_node,
-                                                                                                         winner_weight,
-                                                                                                         out, node,
-                                                                                                         start_index,
-                                                                                                         False)
+                                    self._update_vertex_with_node_index_fractional_cascading_bus_profile(
+                                        winner_node,
+                                        winner_weight,
+                                        out, node,
+                                        start_index,
+                                        False)
                                 elif self.target in self.graph.geometrical_containers[node]:
-                                    self._update_vertex_with_node_index_fractional_cascading_bus_profile(winner_node,
-                                                                                                         winner_weight,
-                                                                                                         out, node,
-                                                                                                         start_index,
-                                                                                                         True)
+                                    self._update_vertex_with_node_index_fractional_cascading_bus_profile(
+                                        winner_node,
+                                        winner_weight,
+                                        out, node,
+                                        start_index,
+                                        True)
                             elif ((self.graph.hierarchy[node] < self.graph.hierarchy[winner_node]) &
                                   (self.target in self.graph.geometrical_containers[node])):
                                 self._update_vertex_with_node_index_fractional_cascading_bus_profile(winner_node,
@@ -124,11 +128,120 @@ class FCH:
                                             True)
                                 elif ((self.graph.hierarchy[node] < self.graph.hierarchy[winner_node]) &
                                       (self.target in self.graph.geometrical_containers[node])):
+                                    self._update_vertex_with_node_index_fractional_cascading_bus_profile(
+                                        winner_node,
+                                        winner_weight,
+                                        out, node,
+                                        start_index,
+                                        True)
+                        for node in self.graph.walking_nodes_old.get(winner_node, []):
+                            if not self.candidate_down_move[winner_node]:
+                                if self.graph.hierarchy[node] > self.graph.hierarchy[winner_node]:
+                                    self._update_vertex_with_node_index_fractional_cascading_walk_profile(
+                                        winner_node,
+                                        winner_weight,
+                                        out, node,
+                                        False)
+                                elif self.target in self.graph.geometrical_containers[node]:
+                                    self._update_vertex_with_node_index_fractional_cascading_walk_profile(
+                                        winner_node,
+                                        winner_weight,
+                                        out, node,
+                                        True)
+                            elif ((self.graph.hierarchy[node] < self.graph.hierarchy[winner_node]) &
+                                  (self.target in self.graph.geometrical_containers[node])):
+                                self._update_vertex_with_node_index_fractional_cascading_walk_profile(winner_node,
+                                                                                                      winner_weight,
+                                                                                                      out, node,
+                                                                                                      True)
+
+                        try:
+                            winner_node, winner_weight = self.candidate_priorities.popitem()
+                        except IndexError:
+                            message = f"Target {self.target} not reachable from node {self.source}"
+                            logging.warning(message)
+                            return {
+                                'path': [],
+                                'routes': [],
+                                'arrival': math.inf,
+                                'duration': to_milliseconds(time.monotonic() - start_time)
+                            }
+                elif fractional_cascading:
+                    start_time = time.monotonic()
+                    while (winner_node != self.target) and (not exception):
+                        exception = _check_running_time(start_time, duration, "FCH")
+
+                        m_arr = self.graph.m_arr_fractional.get(winner_node)
+                        pointers = self.graph.pointers.get(winner_node)
+                        reachable_nodes = self.graph.reachable_nodes.get(winner_node)
+                        out = self.graph.graph.get(winner_node)
+                        down_move = self.candidate_down_move[winner_node]
+                        if pointers:
+                            node = reachable_nodes[0]
+
+                            if not down_move:
+                                start_index, next_loc = pointers[0][bisect_left(m_arr[0], winner_weight)]
+                                if self.graph.hierarchy[node] > self.graph.hierarchy[winner_node]:
+                                    self._update_vertex_with_node_index_fractional_cascading_bus_profile(winner_node,
+                                                                                                         winner_weight,
+                                                                                                         out, node,
+                                                                                                         start_index,
+                                                                                                         False)
+                                elif self.target in self.graph.geometrical_containers[node]:
                                     self._update_vertex_with_node_index_fractional_cascading_bus_profile(winner_node,
                                                                                                          winner_weight,
                                                                                                          out, node,
                                                                                                          start_index,
                                                                                                          True)
+                            elif self.graph.hierarchy[node] < self.graph.hierarchy[winner_node]:
+                                start_index, next_loc = pointers[0][bisect_left(m_arr[0], winner_weight)]
+                                if self.target in self.graph.geometrical_containers[node]:
+                                    self._update_vertex_with_node_index_fractional_cascading_bus_profile(winner_node,
+                                                                                                         winner_weight,
+                                                                                                         out, node,
+                                                                                                         start_index,
+                                                                                                         True)
+                            else:
+                                next_loc = None
+                            if next_loc:
+                                i = 1
+                                while i < len(m_arr):
+
+                                    node = reachable_nodes[i]
+                                    if not down_move:
+                                        if winner_weight <= m_arr[i][next_loc - 1]:
+                                            start_index, next_loc = pointers[i][next_loc - 1]
+                                        else:
+                                            start_index, next_loc = pointers[i][next_loc]
+                                        if self.graph.hierarchy[node] > self.graph.hierarchy[winner_node]:
+                                            self._update_vertex_with_node_index_fractional_cascading_bus_profile(
+                                                winner_node,
+                                                winner_weight,
+                                                out, node,
+                                                start_index,
+                                                False)
+                                        elif self.target in self.graph.geometrical_containers[node]:
+                                            self._update_vertex_with_node_index_fractional_cascading_bus_profile(
+                                                winner_node,
+                                                winner_weight,
+                                                out, node,
+                                                start_index,
+                                                True)
+                                    elif self.graph.hierarchy[node] < self.graph.hierarchy[winner_node]:
+                                        if winner_weight <= m_arr[i][next_loc - 1]:
+                                            start_index, next_loc = pointers[i][next_loc - 1]
+                                        else:
+                                            start_index, next_loc = pointers[i][next_loc]
+                                        if self.target in self.graph.geometrical_containers[node]:
+                                            self._update_vertex_with_node_index_fractional_cascading_bus_profile(winner_node,
+                                                                                                             winner_weight,
+                                                                                                             out, node,
+                                                                                                             start_index,
+                                                                                                             True)
+                                    else:
+                                        i = len(m_arr)
+                                    i += 1
+
                         for node in self.graph.walking_nodes.get(winner_node, []):
                             if not self.candidate_down_move[winner_node]:
                                 if self.graph.hierarchy[node] > self.graph.hierarchy[winner_node]:
