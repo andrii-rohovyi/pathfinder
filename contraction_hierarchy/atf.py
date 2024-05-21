@@ -1,6 +1,7 @@
 from typing import List, Tuple
 import math
-from bisect import bisect_left
+# from bisect import bisect_left
+from binary_search import bisect_left
 
 from trip import Walk, Bus
 

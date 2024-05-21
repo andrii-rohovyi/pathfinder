@@ -4,7 +4,9 @@ from copy import deepcopy
 from collections import defaultdict
 from tqdm import tqdm
 import heapdict
-from bisect import bisect_left
+from copy import copy
+# from bisect import bisect_left
+from binary_search import bisect_left
 from typing import Set, Dict
 
 from atf import ATF, min_atf
@@ -57,6 +59,11 @@ class TransportGraph:
             self.in_nodes[node][adjacent_node] = self.graph[adjacent_node][node] = g
             self.nodes.add(adjacent_node)
             self.nodes.add(node)
+
+        self.m_arr_fractional = {}
+        self.pointers = {}
+        self.reachable_nodes = {}
+        self.walking_nodes = {}
 
     @property
     def edges_cnt(self) -> int:
@@ -188,6 +195,72 @@ class TransportGraph:
                 for node2, f in out.items():
                     self.position_in_edge[node1][i][node2] = bisect_left(f.buses, dep, key=lambda x: x.d)
 
+    def fractional_cascading_precomputation(self):
+        for node1, out in tqdm(self.graph.items()):
+            m_arr = []
+            arr = []
+            reachable_nodes = []
+            walking_nodes = []
+            i = 0
+
+            for node2, f in sorted(out.items(), key=lambda x: len(x[1].buses)):
+                if i == 0:
+                    full_list = [bus.d for bus in f.buses]
+                    if full_list:
+                        arr.append(copy(full_list))
+                        full_list = [-1] + full_list + [100000000000]
+                        m_arr.append(copy(full_list))
+                        reachable_nodes.append(node2)
+                        i += 1
+                    else:
+                        walking_nodes.append(node2)
+                else:
+                    full_list = [bus.d for bus in f.buses]
+                    if full_list:
+                        arr.append(copy(full_list))
+                        full_list += [x for k, x in enumerate(m_arr[i - 1]) if k % 2]
+                        full_list = list(set(full_list))
+                        full_list.sort()
+                        full_list = [-1] + full_list + [100000000000]
+                        m_arr.append(copy(full_list))
+                        reachable_nodes.append(node2)
+                        i += 1
+                    else:
+                        walking_nodes.append(node2)
+            m_arr = m_arr[::-1]
+            arr = arr[::-1]
+            reachable_nodes = reachable_nodes[::-1]
+            self.pointers[node1] = []
+            for i in range(len(m_arr)):
+                self.pointers[node1].append([])
+                for j in range(len(m_arr[i])):
+                    self.pointers[node1][i].append([[]] * len(arr[i]))
+                    self.pointers[node1][i][j] = [-1] * 2
+            for i, l in enumerate(m_arr):
+                for j, m in enumerate(m_arr[i]):
+                    self.pointers[node1][i][j] = [
+                        bisect_left(arr[i], m_arr[i][j]),
+                        0 if i == len(m_arr) - 1 else bisect_left(m_arr[i + 1], m_arr[i][j]),
+                    ]
+            self.m_arr_fractional[node1] = m_arr
+            self.reachable_nodes[node1] = reachable_nodes
+            self.walking_nodes[node1] = walking_nodes
+
+    def get_positions_fractional_cascading(self, x, node):
+        locations = {}
+        m_arr = self.m_arr_fractional.get(node)
+        pointers = self.pointers.get(node)
+        if pointers:
+            loc, next_loc = pointers[0][bisect_left(m_arr[0], x)]
+            locations[self.reachable_nodes[node][0]] = loc
+            for i in range(1, len(m_arr)):
+                if x <= m_arr[i][next_loc - 1]:
+                    loc, next_loc = pointers[i][next_loc - 1]
+                else:
+                    loc, next_loc = pointers[i][next_loc]
+                locations[self.reachable_nodes[node][i]] = loc
+        return locations
+
 
 class ContactionTransportGraph(TransportGraph):
 
@@ -208,6 +281,14 @@ class ContactionTransportGraph(TransportGraph):
         self.position_in_edge = defaultdict(dict)
         self.depth = defaultdict(int)
         self.contraction_priority = heapdict.heapdict()
+        self.m_arr_fractional = {}
+        self.pointers = {}
+        self.reachable_nodes = {}
+        self.walking_nodes = {}
+        self.m_arr_fractional_old = {}
+        self.pointers_old = {}
+        self.reachable_nodes_old = {}
+        self.walking_nodes_old = {}
         for x in nodes:
             self.contraction_priority[x] = self.edge_difference(x) + self.depth[x]
 
@@ -252,3 +333,105 @@ class ContactionTransportGraph(TransportGraph):
                 self.position_in_edge[node1][i] = {}
                 for node2, f in out.items():
                     self.position_in_edge[node1][i][node2] = bisect_left(f.buses, dep, key=lambda x: x.d)
+
+    def fractional_cascading_precomputation(self):
+        for node1, out in tqdm(self.graph.items()):
+            m_arr = []
+            arr = []
+            reachable_nodes = []
+            walking_nodes = []
+            i = 0
+
+            for node2, f in sorted(out.items(), key=lambda x: -self.hierarchy[x[0]]):
+                if i == 0:
+                    full_list = [bus.d for bus in f.buses]
+                    if full_list:
+                        arr.append(copy(full_list))
+                        full_list = [-1] + full_list + [100000000000]
+                        m_arr.append(copy(full_list))
+                        reachable_nodes.append(node2)
+                        i += 1
+                    else:
+                        walking_nodes.append(node2)
+                else:
+                    full_list = [bus.d for bus in f.buses]
+                    if full_list:
+                        arr.append(copy(full_list))
+                        full_list += [x for k, x in enumerate(m_arr[i - 1]) if k % 2]
+                        full_list = list(set(full_list))
+                        full_list.sort()
+                        full_list = [-1] + full_list + [100000000000]
+                        m_arr.append(copy(full_list))
+                        reachable_nodes.append(node2)
+                        i += 1
+                    else:
+                        walking_nodes.append(node2)
+            m_arr = m_arr[::-1]
+            arr = arr[::-1]
+            reachable_nodes = reachable_nodes[::-1]
+            self.pointers[node1] = []
+            for i in range(len(m_arr)):
+                self.pointers[node1].append([])
+                for j in range(len(m_arr[i])):
+                    self.pointers[node1][i].append([[]] * len(arr[i]))
+                    self.pointers[node1][i][j] = [-1] * 2
+            for i, l in enumerate(m_arr):
+                for j, m in enumerate(m_arr[i]):
+                    self.pointers[node1][i][j] = [
+                        bisect_left(arr[i], m_arr[i][j]),
+                        0 if i == len(m_arr) - 1 else bisect_left(m_arr[i + 1], m_arr[i][j]),
+                    ]
+            self.m_arr_fractional[node1] = m_arr
+            self.reachable_nodes[node1] = reachable_nodes
+            self.walking_nodes[node1] = walking_nodes
+
+    def fractional_cascading_precomputation_old(self):
+        for node1, out in tqdm(self.graph.items()):
+            m_arr = []
+            arr = []
+            reachable_nodes = []
+            walking_nodes = []
+            i = 0
+
+            for node2, f in sorted(out.items(), key=lambda x: len(x[1].buses)):
+                if i == 0:
+                    full_list = [bus.d for bus in f.buses]
+                    if full_list:
+                        arr.append(copy(full_list))
+                        full_list = [-1] + full_list + [100000000000]
+                        m_arr.append(copy(full_list))
+                        reachable_nodes.append(node2)
+                        i += 1
+                    else:
+                        walking_nodes.append(node2)
+                else:
+                    full_list = [bus.d for bus in f.buses]
+                    if full_list:
+                        arr.append(copy(full_list))
+                        full_list += [x for k, x in enumerate(m_arr[i - 1]) if k % 2]
+                        full_list = list(set(full_list))
+                        full_list.sort()
+                        full_list = [-1] + full_list + [100000000000]
+                        m_arr.append(copy(full_list))
+                        reachable_nodes.append(node2)
+                        i += 1
+                    else:
+                        walking_nodes.append(node2)
+            m_arr = m_arr[::-1]
+            arr = arr[::-1]
+            reachable_nodes = reachable_nodes[::-1]
+            self.pointers_old[node1] = []
+            for i in range(len(m_arr)):
+                self.pointers_old[node1].append([])
+                for j in range(len(m_arr[i])):
+                    self.pointers_old[node1][i].append([[]] * len(arr[i]))
+                    self.pointers_old[node1][i][j] = [-1] * 2
+            for i, l in enumerate(m_arr):
+                for j, m in enumerate(m_arr[i]):
+                    self.pointers_old[node1][i][j] = [
+                        bisect_left(arr[i], m_arr[i][j]),
+                        0 if i == len(m_arr) - 1 else bisect_left(m_arr[i + 1], m_arr[i][j]),
+                    ]
+            self.m_arr_fractional_old[node1] = m_arr
+            self.reachable_nodes_old[node1] = reachable_nodes
+            self.walking_nodes_old[node1] = walking_nodes
