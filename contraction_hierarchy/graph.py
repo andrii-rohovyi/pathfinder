@@ -56,9 +56,10 @@ class TransportGraph:
                      for i, c in enumerate(transport_connections_nodes_dict['dep_arr'])]
             g = ATF(walk=walk, buses=buses)
             g.cut()
-            self.in_nodes[node][adjacent_node] = self.graph[adjacent_node][node] = g
-            self.nodes.add(adjacent_node)
-            self.nodes.add(node)
+            if walk or buses:
+                self.in_nodes[node][adjacent_node] = self.graph[adjacent_node][node] = g
+                self.nodes.add(adjacent_node)
+                self.nodes.add(node)
 
         self.m_arr_fractional = {}
         self.pointers = {}
