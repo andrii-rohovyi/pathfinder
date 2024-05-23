@@ -270,19 +270,20 @@ class Dijkstra:
         """
 
         f = out[node]
-        walk_time = winner_weight + f.walk.w
-        new_weight, sequence_nodes, route_names = walk_time, f.walk.nodes, f.walk.route_names
-        if node in self.candidate_weights.keys():
-            if new_weight < self.candidate_weights[node]:
+        if f.walk:
+            walk_time = winner_weight + f.walk.w
+            new_weight, sequence_nodes, route_names = walk_time, f.walk.nodes, f.walk.route_names
+            if node in self.candidate_weights.keys():
+                if new_weight < self.candidate_weights[node]:
+                    self.candidate_weights[node] = new_weight
+                    self.candidate_priorities[node] = new_weight
+                    self.candidate_sequences[node] = self.candidate_sequences[winner_node] + sequence_nodes[1:]
+                    self.candidate_roots[node] = self.candidate_roots[winner_node] + [node]
+                    self.candidate_route_names[node] = self.candidate_route_names[winner_node] + route_names
+            elif new_weight != math.inf:
                 self.candidate_weights[node] = new_weight
                 self.candidate_priorities[node] = new_weight
                 self.candidate_sequences[node] = self.candidate_sequences[winner_node] + sequence_nodes[1:]
                 self.candidate_roots[node] = self.candidate_roots[winner_node] + [node]
                 self.candidate_route_names[node] = self.candidate_route_names[winner_node] + route_names
-        elif new_weight != math.inf:
-            self.candidate_weights[node] = new_weight
-            self.candidate_priorities[node] = new_weight
-            self.candidate_sequences[node] = self.candidate_sequences[winner_node] + sequence_nodes[1:]
-            self.candidate_roots[node] = self.candidate_roots[winner_node] + [node]
-            self.candidate_route_names[node] = self.candidate_route_names[winner_node] + route_names
 
